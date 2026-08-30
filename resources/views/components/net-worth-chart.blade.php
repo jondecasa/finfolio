@@ -5,7 +5,10 @@
     'accountId' => null,
     'height' => 240,
     'lgHeight' => null,
+    'hidden' => null,
 ])
+
+@php($hidden = $hidden ?? (bool) (auth()->user()?->values_hidden))
 
 <div
     x-data="netWorthChart({
@@ -13,6 +16,7 @@
         payload: @js($series),
         endpoint: '{{ route('api.series') }}',
         accountId: {{ $accountId ? (int) $accountId : 'null' }},
+        hidden: @js($hidden),
     })"
     class="w-full"
 >

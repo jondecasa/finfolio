@@ -29,13 +29,17 @@
         <div class="mt-1 flex items-end justify-between">
             <x-money :amount="$overview['total_value']" :currency="$currency" :hidden="$hidden" class="stat-value" />
             <div class="pb-1 text-right text-sm">
-                <div class="inline-flex items-center gap-1 font-semibold"
-                     :class="changePct >= 0 ? 'value-up' : 'value-down'">
-                    <svg class="h-3.5 w-3.5" :class="changePct >= 0 ? '' : 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
-                    <span x-text="(changePct >= 0 ? '' : '−') + Math.abs(changePct).toFixed(2) + '%'"></span>
-                </div>
-                <div class="{{ '' }}" :class="changePct >= 0 ? 'value-up' : 'value-down'"
-                     x-text="window.Finfolio.formatCurrency(Math.abs(change), @js($currency))"></div>
+                @if ($hidden)
+                    <div class="font-semibold text-muted">••••</div>
+                @else
+                    <div class="inline-flex items-center gap-1 font-semibold"
+                         :class="changePct >= 0 ? 'value-up' : 'value-down'">
+                        <svg class="h-3.5 w-3.5" :class="changePct >= 0 ? '' : 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+                        <span x-text="(changePct >= 0 ? '' : '−') + Math.abs(changePct).toFixed(2) + '%'"></span>
+                    </div>
+                    <div :class="changePct >= 0 ? 'value-up' : 'value-down'"
+                         x-text="window.Finfolio.formatCurrency(Math.abs(change), @js($currency))"></div>
+                @endif
             </div>
         </div>
     </div>

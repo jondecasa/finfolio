@@ -116,7 +116,10 @@ function areaChart(canvas, payload) {
                                       minute: '2-digit',
                                   });
                         },
-                        label: (item) => formatCurrency(item.parsed.y, payload.currency || 'EUR'),
+                        label: (item) =>
+                            payload.hidden
+                                ? '••••••'
+                                : formatCurrency(item.parsed.y, payload.currency || 'EUR'),
                     },
                 },
             },
@@ -211,12 +214,13 @@ Alpine.data('netWorthChart', (initial) => ({
     loading: false,
     chart: null,
     payload: initial.payload,
+    hidden: initial.hidden || false,
     init() {
         this.render();
     },
     render() {
         if (this.chart) this.chart.destroy();
-        this.chart = window.Finfolio.areaChart(this.$refs.canvas, this.payload);
+        this.chart = window.Finfolio.areaChart(this.$refs.canvas, { ...this.payload, hidden: this.hidden });
     },
     async select(range) {
         if (range === this.range) return;
