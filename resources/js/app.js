@@ -280,3 +280,15 @@ Alpine.data('assetSearch', (config = {}) => ({
 
 window.Alpine = Alpine;
 Alpine.start();
+
+/* ------------------------------------------------------------------ */
+/* PWA: register the service worker                                     */
+/* ------------------------------------------------------------------ */
+if ('serviceWorker' in navigator) {
+    const registerSW = () => navigator.serviceWorker.register('/sw.js').catch(() => {});
+    if (document.readyState === 'complete') {
+        registerSW();
+    } else {
+        window.addEventListener('load', registerSW);
+    }
+}

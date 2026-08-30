@@ -18,6 +18,9 @@ Route::get('/', function () {
     return Auth::check() ? redirect()->route('home') : redirect()->route('login');
 });
 
+// PWA offline fallback (served by the service worker when the network is down)
+Route::view('/offline', 'offline')->name('offline');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::get('/dashboard', fn () => redirect()->route('home'))->name('dashboard');
