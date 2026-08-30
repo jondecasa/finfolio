@@ -51,7 +51,17 @@ class PortfolioService
 
     public function holdingInvested(Holding $holding, string $base): float
     {
-        return $this->fx->convert($holding->costBasis(), $holding->asset->currency ?? 'USD', $base);
+        return $this->fx->convert($holding->costBasis(), $holding->costCurrency(), $base);
+    }
+
+    /** Position return %, measured consistently in the user's base currency. */
+    public function holdingGainPct(Holding $holding, string $base): ?float
+    {
+        $invested = $this->holdingInvested($holding, $base);
+
+        return $invested > 0
+            ? ($this->holdingGross($holding, $base) - $invested) / $invested * 100
+            : null;
     }
 
     /** Net value of the holding at the previous market close, in base currency. */
@@ -184,7 +194,7 @@ class PortfolioService
                 'value' => $value,
                 'quantity' => (float) $holding->quantity,
                 'day_change_pct' => $holding->asset->dayChangePct(),
-                'gain_pct' => $holding->unrealizedGainPct(),
+                'gain_pct' => $this->holdingGainPct($holding, $base),
             ];
         })->values();
 

@@ -34,7 +34,7 @@ class WealthController extends Controller
                 'value' => $value,
                 'invested' => $invested,
                 'gain' => $this->portfolio->holdingGross($h, $base) - $invested,
-                'gain_pct' => $h->unrealizedGainPct(),
+                'gain_pct' => $this->portfolio->holdingGainPct($h, $base),
                 'day_change_pct' => $h->asset->dayChangePct(),
             ];
         })->sortByDesc('value')->values();

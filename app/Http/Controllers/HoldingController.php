@@ -50,6 +50,7 @@ class HoldingController extends Controller
             [
                 'quantity' => $data['quantity'],
                 'average_cost' => $data['average_cost'] ?? null,
+                'cost_currency' => $data['cost_currency'] ?: $request->user()->currency(),
                 'manual_value' => $isManual ? $data['manual_price'] : null,
                 'debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : 0,
                 'notes' => $data['notes'] ?? null,
@@ -90,6 +91,7 @@ class HoldingController extends Controller
             'category' => ['nullable', Rule::in(Holding::RECATEGORISABLE)],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'average_cost' => ['nullable', 'numeric', 'gte:0'],
+            'cost_currency' => ['nullable', 'string', 'size:3'],
             'manual_value' => [$isManual ? 'required' : 'nullable', 'numeric', 'gte:0'],
             'debt' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:255'],
@@ -102,6 +104,7 @@ class HoldingController extends Controller
                 : $holding->category,
             'quantity' => $data['quantity'],
             'average_cost' => $data['average_cost'] ?? null,
+            'cost_currency' => strtoupper($data['cost_currency'] ?? '') ?: $holding->costCurrency(),
             'manual_value' => $isManual ? $data['manual_value'] : null,
             'debt' => $holding->asset->type === 'realestate' ? ($data['debt'] ?? 0) : 0,
             'notes' => $data['notes'] ?? null,
@@ -138,12 +141,14 @@ class HoldingController extends Controller
             'logo_url' => ['nullable', 'string', 'max:255'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'average_cost' => ['nullable', 'numeric', 'gte:0'],
+            'cost_currency' => ['nullable', 'string', 'size:3'],
             'manual_price' => ['nullable', 'numeric', 'gte:0', Rule::requiredIf(fn () => in_array($request->input('type'), $manualTypes, true))],
             'debt' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
         $data['name'] = $data['name'] ?: strtoupper($data['symbol']);
+        $data['cost_currency'] = strtoupper($data['cost_currency'] ?? '') ?: null;
 
         // Searchable assets get their currency from the price provider. A
         // manually-valued asset falls back to the user's base currency.

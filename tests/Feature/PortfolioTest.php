@@ -147,6 +147,39 @@ class PortfolioTest extends TestCase
             ->assertJsonStructure(['currency', 'range', 'points', 'change', 'change_pct']);
     }
 
+    public function test_gain_percent_uses_the_currency_the_user_paid_in(): void
+    {
+        // Asset trades in USD (e.g. IGLN.L on the LSE), but the user paid in EUR.
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+
+        $gold = Asset::create([
+            'type' => 'commodity', 'symbol' => 'IGLN.L', 'name' => 'iShares Physical Gold',
+            'currency' => 'USD', 'current_price' => 100, 'previous_close' => 100,
+            'price_updated_at' => now(),
+        ]);
+
+        $holding = Holding::create([
+            'account_id' => $account->id,
+            'asset_id' => $gold->id,
+            'quantity' => 10,
+            'average_cost' => 90,        // 90 per unit...
+            'cost_currency' => 'EUR',    // ...paid in EUR, not the USD the asset trades in
+        ]);
+
+        $portfolio = app(PortfolioService::class);
+
+        // Gross: 10 * 100 USD = 1000 USD -> * 0.9 = 900 EUR.
+        // Invested: 10 * 90 EUR = 900 EUR (no conversion needed).
+        // Return is therefore 0% — NOT +11% you'd get treating the cost as USD.
+        $this->assertEqualsWithDelta(900, $portfolio->holdingInvested($holding, 'EUR'), 0.01);
+        $this->assertEqualsWithDelta(0, $portfolio->holdingGainPct($holding, 'EUR'), 0.01);
+
+        // Legacy row without cost_currency falls back to the asset's currency (USD).
+        $holding->update(['cost_currency' => null]);
+        $this->assertEqualsWithDelta(810, $portfolio->holdingInvested($holding, 'EUR'), 0.01);
+    }
+
     public function test_user_can_add_a_position(): void
     {
         $user = $this->makePortfolio();

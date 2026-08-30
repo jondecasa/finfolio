@@ -24,6 +24,7 @@
               asset: @js($hasPrefill ? $prefill : null),
               manual: { name: '', symbol: '', currency: @js($baseCurrency), price: '', purchase: '', debt: '' },
               avgCost: '{{ old('average_cost') }}',
+              costCcy: @js(old('cost_currency', $baseCurrency)),
               qty: {{ old('quantity', 1) }},
               query: '',
               results: [],
@@ -192,18 +193,30 @@
         </div>
 
         {{-- Quantity + cost (only for searchable assets and 'other') --}}
-        <div class="grid grid-cols-2 gap-3" x-show="!unitless">
-            <div>
-                <label class="mb-1.5 block text-sm font-semibold text-muted">Quantity</label>
-                <input type="number" step="any" min="0" class="field" x-model="qty" inputmode="decimal">
+        <div x-show="!unitless" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Quantity</label>
+                    <input type="number" step="any" min="0" class="field" x-model="qty" inputmode="decimal">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Avg. buy price</label>
+                    <input type="number" step="any" min="0" class="field" x-model="avgCost" inputmode="decimal">
+                </div>
             </div>
             <div>
-                <label class="mb-1.5 block text-sm font-semibold text-muted">Avg. buy price</label>
-                <input type="number" step="any" min="0" class="field" x-model="avgCost" inputmode="decimal">
+                <label class="mb-1.5 block text-sm font-semibold text-muted">Cost currency</label>
+                <select class="field" x-model="costCcy">
+                    @foreach ($currencyOptions as $c)
+                        <option value="{{ $c }}">{{ $c }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-muted">The currency you actually paid in (often your base currency, even for foreign assets).</p>
             </div>
         </div>
         <input type="hidden" name="quantity" :value="qty">
         <input type="hidden" name="average_cost" :value="outAvgCost">
+        <input type="hidden" name="cost_currency" :value="costCcy">
         <input type="hidden" name="debt" :value="outDebt">
 
         <div>

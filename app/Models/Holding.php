@@ -20,6 +20,7 @@ class Holding extends Model
         'category',
         'quantity',
         'average_cost',
+        'cost_currency',
         'manual_value',
         'debt',
         'notes',
@@ -95,7 +96,13 @@ class Holding extends Model
         return $this->grossValue() - $this->debtAmount();
     }
 
-    /** Total invested (cost basis) in the asset's native currency. */
+    /** Currency the purchase price / cost basis is expressed in. */
+    public function costCurrency(): string
+    {
+        return $this->cost_currency ?: ($this->asset->currency ?? 'USD');
+    }
+
+    /** Total invested (cost basis), in costCurrency(). */
     public function costBasis(): float
     {
         return (float) $this->quantity * (float) ($this->average_cost ?? 0);

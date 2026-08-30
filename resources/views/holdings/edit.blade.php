@@ -4,6 +4,9 @@
     $source = $asset->priceSource();
     $num = fn ($v) => $v === null ? '' : rtrim(rtrim(number_format((float) $v, 8, '.', ''), '0'), '.');
     $categories = config('finfolio.categories', []);
+    $costCcy = strtoupper($holding->costCurrency());
+    $costCcys = collect([auth()->user()->currency(), $currency, 'EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'SEK', 'NOK', 'DKK', 'PLN'])
+        ->map(fn ($c) => strtoupper($c))->filter()->unique()->values();
 @endphp
 
 <x-layouts.mobile heading="Edit position" title="Finfolio · Edit position" :back="route('analytics')">
@@ -117,11 +120,22 @@
                            value="{{ old('manual_value', $num($holding->manual_value)) }}" required inputmode="decimal">
                 </div>
             </div>
-            <div>
-                <label class="mb-1.5 block text-sm font-semibold text-muted">Avg. buy price</label>
-                <input type="number" step="any" min="0" name="average_cost" class="field"
-                       value="{{ old('average_cost', $num($holding->average_cost)) }}" inputmode="decimal">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Avg. buy price</label>
+                    <input type="number" step="any" min="0" name="average_cost" class="field"
+                           value="{{ old('average_cost', $num($holding->average_cost)) }}" inputmode="decimal">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Cost currency</label>
+                    <select name="cost_currency" class="field">
+                        @foreach ($costCcys as $c)
+                            <option value="{{ $c }}" @selected($costCcy === $c)>{{ $c }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
+            <p class="text-xs text-muted">What <em>you</em> paid per unit, in the currency you paid in.</p>
 
         @else
             <div class="grid grid-cols-2 gap-3">
@@ -135,6 +149,17 @@
                     <input type="number" step="any" min="0" name="average_cost" class="field"
                            value="{{ old('average_cost', $num($holding->average_cost)) }}" inputmode="decimal">
                 </div>
+            </div>
+            <div>
+                <label class="mb-1.5 block text-sm font-semibold text-muted">Cost currency</label>
+                <select name="cost_currency" class="field">
+                    @foreach ($costCcys as $c)
+                        <option value="{{ $c }}" @selected($costCcy === $c)>{{ $c }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-muted">
+                    The currency <em>you</em> paid in. This asset trades in <span class="font-semibold text-white">{{ strtoupper($asset->currency) }}</span>.
+                </p>
             </div>
         @endif
 
