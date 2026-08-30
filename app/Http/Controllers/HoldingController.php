@@ -87,6 +87,7 @@ class HoldingController extends Controller
 
         $data = $request->validate([
             'account_id' => ['required', Rule::exists('accounts', 'id')->where('user_id', $request->user()->id)],
+            'category' => ['nullable', Rule::in(Holding::RECATEGORISABLE)],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'average_cost' => ['nullable', 'numeric', 'gte:0'],
             'manual_value' => [$isManual ? 'required' : 'nullable', 'numeric', 'gte:0'],
@@ -96,6 +97,9 @@ class HoldingController extends Controller
 
         $holding->update([
             'account_id' => $data['account_id'],
+            'category' => $holding->canRecategorise()
+                ? (($data['category'] ?? null) === $holding->asset->type ? null : ($data['category'] ?? null))
+                : $holding->category,
             'quantity' => $data['quantity'],
             'average_cost' => $data['average_cost'] ?? null,
             'manual_value' => $isManual ? $data['manual_value'] : null,

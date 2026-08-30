@@ -179,7 +179,7 @@ class PortfolioService
                 'account' => $holding->account,
                 'symbol' => $holding->asset->symbol,
                 'name' => $holding->asset->name,
-                'type' => $holding->asset->type,
+                'type' => $holding->displayType(),
                 'logo_url' => $holding->asset->logo_url,
                 'value' => $value,
                 'quantity' => (float) $holding->quantity,

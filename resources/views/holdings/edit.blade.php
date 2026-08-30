@@ -3,6 +3,7 @@
     $currency = $asset->currency ?? 'USD';
     $source = $asset->priceSource();
     $num = fn ($v) => $v === null ? '' : rtrim(rtrim(number_format((float) $v, 8, '.', ''), '0'), '.');
+    $categories = config('finfolio.categories', []);
 @endphp
 
 <x-layouts.mobile heading="Edit position" title="Finfolio · Edit position" :back="route('analytics')">
@@ -21,7 +22,7 @@
             <div class="min-w-0 flex-1">
                 <div class="truncate font-semibold">{{ $asset->name }}</div>
                 <div class="text-xs text-muted">
-                    {{ $asset->symbol }} · {{ $asset->typeLabel() }}
+                    {{ $asset->symbol }} · {{ $holding->typeLabel() }}
                     @if ($holding->grossValue() > 0)
                         · {{ \App\Support\Money::format($holding->grossValue(), $currency) }}
                         @if ($holding->debtAmount() > 0)
@@ -61,6 +62,18 @@
                 @endforeach
             </select>
         </div>
+
+        @if ($holding->canRecategorise())
+            <div>
+                <label class="mb-1.5 block text-sm font-semibold text-muted">Category</label>
+                <select name="category" class="field">
+                    @foreach (\App\Models\Holding::RECATEGORISABLE as $t)
+                        <option value="{{ $t }}" @selected($holding->displayType() === $t)>{{ $categories[$t]['label'] ?? \Illuminate\Support\Str::headline($t) }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-muted">Only changes how it's grouped in Analytics. Pricing stays the same.</p>
+            </div>
+        @endif
 
         @if ($asset->type === 'realestate')
             <div class="grid grid-cols-2 gap-3">

@@ -5,12 +5,12 @@
     // Asset types present in the current holdings, ordered like the category list.
     $order = array_keys(config('finfolio.categories', []));
     $presentTypes = $positions
-        ->map(fn ($p) => $p['holding']->asset->type)
+        ->map(fn ($p) => $p['holding']->displayType())
         ->unique()
         ->sortBy(fn ($t) => array_search($t, $order) === false ? 99 : array_search($t, $order))
         ->values();
     $typeLabel = fn ($t) => config("finfolio.categories.$t.label", \Illuminate\Support\Str::headline($t));
-    $allRowTypes = $positions->map(fn ($p) => $p['holding']->asset->type)->values();
+    $allRowTypes = $positions->map(fn ($p) => $p['holding']->displayType())->values();
 @endphp
 
 <x-layouts.mobile heading="Wealth" title="Finfolio · Wealth" wide>
@@ -77,7 +77,7 @@
             @forelse ($positions as $p)
                 @php $h = $p['holding']; @endphp
                 <a href="{{ route('holdings.edit', $h) }}" class="row-link"
-                   x-show="shows('{{ $h->asset->type }}')">
+                   x-show="shows('{{ $h->displayType() }}')">
                     <div class="flex min-w-0 items-center gap-3">
                         <span class="logo-bubble">
                             @if ($h->asset->logo_url)

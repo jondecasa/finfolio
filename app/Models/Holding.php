@@ -5,14 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class Holding extends Model
 {
     use HasFactory;
 
+    /** Asset types the user may recategorise a holding between (all Yahoo-priced). */
+    public const RECATEGORISABLE = ['stock', 'etf', 'index', 'fund', 'commodity'];
+
     protected $fillable = [
         'account_id',
         'asset_id',
+        'category',
         'quantity',
         'average_cost',
         'manual_value',
@@ -38,6 +43,24 @@ class Holding extends Model
     public function asset(): BelongsTo
     {
         return $this->belongsTo(Asset::class);
+    }
+
+    /** Type used for display and allocation grouping (the per-holding override, else the asset's type). */
+    public function displayType(): string
+    {
+        return $this->category ?: ($this->asset->type ?? 'other');
+    }
+
+    public function typeLabel(): string
+    {
+        $type = $this->displayType();
+
+        return config("finfolio.categories.$type.label") ?? Str::headline($type);
+    }
+
+    public function canRecategorise(): bool
+    {
+        return in_array($this->asset->type, self::RECATEGORISABLE, true);
     }
 
     /**
