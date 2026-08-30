@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --c-gain: #30d67b;
+    --c-loss: #ff5a5f;
+    --c-accent: #2f6bff;
+    color-scheme: dark;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-ink text-white antialiased;
+        font-feature-settings: 'tnum' 1;
+    }
+
+    /* Hide scrollbars on the horizontal pill rows */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}
+
+@layer components {
+    /* Mobile: single centred phone column. Desktop: fluid, the sidebar + main
+       wrapper in the layout own the width. */
+    .app-shell {
+        @apply mx-auto min-h-screen w-full max-w-app bg-ink lg:max-w-none;
+    }
+
+    /* Horizontal gutter for content sections. The lg wrapper already pads, so
+       drop it there. */
+    .app-pad {
+        @apply px-5 lg:px-0;
+    }
+
+    .card {
+        @apply rounded-xl2 bg-ink-800 p-4;
+    }
+
+    .card-tight {
+        @apply rounded-2xl bg-ink-800 p-3;
+    }
+
+    .stat-value {
+        @apply text-4xl font-bold tracking-tight lg:text-5xl;
+    }
+
+    .pill {
+        @apply rounded-full px-3.5 py-1.5 text-sm font-semibold text-muted transition hover:text-white;
+    }
+    .pill-active {
+        @apply bg-ink-700 text-white;
+    }
+
+    .chip {
+        @apply inline-flex items-center gap-1 rounded-full bg-ink-700 px-2.5 py-1 text-xs font-medium text-muted;
+    }
+
+    .tab {
+        @apply whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:text-white;
+    }
+    .tab-active {
+        @apply bg-white text-ink hover:text-ink;
+    }
+
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition active:scale-[0.98];
+    }
+    .btn-primary {
+        @apply btn bg-white text-ink hover:bg-white/90;
+    }
+    .btn-ghost {
+        @apply btn bg-ink-700 text-white hover:bg-ink-600;
+    }
+
+    .field {
+        @apply w-full rounded-2xl border-0 bg-ink-700 px-4 py-3 text-base text-white placeholder:text-muted focus:ring-2 focus:ring-accent;
+    }
+
+    .row-link {
+        @apply flex items-center justify-between gap-3 py-3;
+    }
+
+    .value-up {
+        color: var(--c-gain);
+    }
+    .value-down {
+        color: var(--c-loss);
+    }
+
+    /* ---------- Mobile bottom nav ---------- */
+    .bottom-nav {
+        @apply fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-app items-center justify-between rounded-t-3xl border-t border-white/5 bg-ink-900/95 px-6 pb-6 pt-3 backdrop-blur lg:hidden;
+    }
+    .bottom-nav a {
+        @apply flex flex-col items-center gap-1 text-[11px] font-medium text-muted;
+    }
+    .bottom-nav a.active {
+        @apply text-white;
+    }
+
+    /* ---------- Desktop sidebar ---------- */
+    .side-nav {
+        @apply fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-white/5 bg-ink-900 px-4 py-6 lg:flex;
+    }
+    .side-nav-link {
+        @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-ink-800 hover:text-white;
+    }
+    .side-nav-link.active {
+        @apply bg-ink-800 text-white;
+    }
+}
+
+/* Ticker / asset logo bubble */
+.logo-bubble {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-600 text-xs font-bold text-white;
+}
+
+/* Native <dialog> confirmation modal */
+.confirm-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(92vw, 26rem);
+    height: fit-content;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    overflow: visible;
+}
+.confirm-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+}
+.confirm-dialog[open] {
+    animation: confirm-pop 0.18s ease-out;
+}
+.confirm-dialog[open]::backdrop {
+    animation: confirm-fade 0.18s ease-out;
+}
+@keyframes confirm-pop {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes confirm-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Chart height: responsive via custom properties so Blade can stay dynamic. */
+.chart-box {
+    height: var(--h, 220px);
+}
+@media (min-width: 1024px) {
+    .chart-box {
+        height: var(--h-lg, 340px);
+    }
+}
