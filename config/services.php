@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    /*
+    | Google reCAPTCHA v3 for the registration form. Leave the keys unset to
+    | disable the check entirely (local dev / tests). Get keys at
+    | https://www.google.com/recaptcha/admin (reCAPTCHA v3).
+    */
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret' => env('RECAPTCHA_SECRET'),
+        'min_score' => (float) env('RECAPTCHA_MIN_SCORE', 0.5),
+    ],
+
 ];

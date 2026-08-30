@@ -3,6 +3,7 @@
 
     <form method="POST" action="{{ route('register') }}" class="space-y-4">
         @csrf
+        <x-honeypot />
 
         <div>
             <label for="name" class="mb-1.5 block text-sm font-semibold text-muted">Name</label>
@@ -28,7 +29,21 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2 text-loss" />
         </div>
 
+        <x-input-error :messages="$errors->get('captcha')" class="text-loss" />
+
         <button class="btn-primary w-full">Register</button>
+
+        <x-recaptcha action="register" />
+
+        @if (config('services.recaptcha.site_key'))
+            <p class="text-center text-xs text-muted/70">
+                Protected by reCAPTCHA — Google’s
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="underline">Privacy Policy</a>
+                and
+                <a href="https://policies.google.com/terms" target="_blank" rel="noopener" class="underline">Terms</a>
+                apply.
+            </p>
+        @endif
 
         <p class="pt-1 text-center text-sm text-muted">
             Already registered?
