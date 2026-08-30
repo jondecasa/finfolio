@@ -120,13 +120,8 @@
                             <span class="truncate font-semibold">{{ $p['name'] }}</span>
                             <span class="shrink-0 font-semibold">{{ number_format($p['weight'], 1) }}%</span>
                         </div>
-                        <div class="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted">
-                            <span>
-                                <x-money :amount="$p['value']" :currency="$currency" :hidden="$hidden" />
-                            </span>
-                            @if ($p['day_change_pct'] !== null)
-                                <x-change :pct="$p['day_change_pct']" />
-                            @endif
+                        <div class="mt-0.5 text-xs text-muted">
+                            <x-money :amount="$p['value']" :currency="$currency" :hidden="$hidden" />
                         </div>
                     </div>
                 </a>
