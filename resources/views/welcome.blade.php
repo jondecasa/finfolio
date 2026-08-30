@@ -10,7 +10,7 @@
 </head>
 <body class="bg-ink font-sans text-white">
     <div class="mx-auto flex min-h-screen max-w-app flex-col items-center justify-center px-6 text-center">
-        <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-3xl font-black text-ink">₣</div>
+        <x-application-logo class="mb-5 h-16 w-16 rounded-2xl" />
         <h1 class="text-3xl font-bold">Finfolio</h1>
         <p class="mt-2 text-muted">Track every position, live.</p>
         <div class="mt-8 flex w-full flex-col gap-3">

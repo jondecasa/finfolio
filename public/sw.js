@@ -4,9 +4,9 @@
  * - Everything else: straight to network.
  * Bump CACHE to invalidate on deploy.
  */
-const CACHE = 'finfolio-v1';
+const CACHE = 'finfolio-v2';
 const OFFLINE_URL = '/offline';
-const PRECACHE = ['/offline', '/favicon.svg', '/icon.svg', '/icon-192.png', '/icon-512.png', '/site.webmanifest'];
+const PRECACHE = ['/offline', '/favicon.svg', '/icon.svg', '/apple-touch-icon.png', '/favicon.ico', '/site.webmanifest'];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(

@@ -9,7 +9,7 @@
 @endphp
 <aside class="side-nav">
     <a href="{{ route('home') }}" class="mb-6 flex items-center gap-2.5 px-3">
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-lg font-black text-ink">₣</span>
+        <x-application-logo class="h-9 w-9 rounded-xl" />
         <span class="text-lg font-bold">Finfolio</span>
     </a>
 

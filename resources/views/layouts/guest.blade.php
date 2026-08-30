@@ -12,7 +12,7 @@
 <body class="bg-ink font-sans text-white antialiased">
     <div class="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-6 py-10">
         <div class="mb-8 text-center">
-            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl font-black text-ink">₣</div>
+            <x-application-logo class="mx-auto mb-4 h-14 w-14 rounded-2xl" />
             <h1 class="text-2xl font-bold">Finfolio</h1>
             <p class="mt-1 text-sm text-muted">Track every position, live.</p>
         </div>

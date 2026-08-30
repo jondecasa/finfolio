@@ -1,4 +1,7 @@
 <svg {{ $attributes }} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="48" height="48" rx="12" fill="currentColor"/>
-    <path d="M17 34V14h15v4H21.5v5H31v4h-9.5v7H17Z" fill="#000"/>
+    <rect width="48" height="48" rx="12" fill="#0a0a0b"/>
+    <circle cx="24" cy="24" r="12" stroke="#26262a" stroke-width="3.4"/>
+    <circle cx="24" cy="24" r="12" stroke="#2f6bff" stroke-width="3.4" stroke-dasharray="30 45.4" transform="rotate(-90 24 24)"/>
+    <circle cx="24" cy="24" r="12" stroke="#30d67b" stroke-width="3.4" stroke-dasharray="14 61.4" stroke-dashoffset="-33" transform="rotate(-90 24 24)"/>
+    <path d="M20 17.6H28.4V20.4H23V22.9H27.3V25.7H23V30.4H20Z" fill="#fff"/>
 </svg>
