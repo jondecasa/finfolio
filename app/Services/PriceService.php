@@ -108,11 +108,15 @@ class PriceService
             return [];
         }
 
+        // The picked category chooses the provider; it does NOT filter the
+        // provider's own classification. A UCITS ETF searched under "Index
+        // funds" is still worth showing (Yahoo may label it ETF / MUTUALFUND /
+        // INDEX inconsistently, and ISIN lookups resolve to whatever listing).
         $providers = [];
         if ($type === 'crypto') {
             $providers[] = [$this->provider(config('finfolio.providers.crypto')), null];
         } elseif (in_array($type, ['stock', 'etf', 'index', 'fund', 'commodity'], true)) {
-            $providers[] = [$this->provider(config('finfolio.providers.stock')), $type];
+            $providers[] = [$this->provider(config('finfolio.providers.stock')), null];
         } else {
             $providers[] = [$this->provider(config('finfolio.providers.crypto')), null];
             $providers[] = [$this->provider(config('finfolio.providers.stock')), null];
