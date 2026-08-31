@@ -194,10 +194,19 @@ class PlanRunner
     protected function applyValue(Plan $plan, Holding $holding, CarbonImmutable $on): PlanRun
     {
         $assetCcy = $holding->asset->currency ?: 'USD';
-        $cash = $this->fx->convert((float) $plan->amount, $plan->currency ?: $assetCcy, $assetCcy);
-
         $current = (float) ($holding->manual_value ?? 0);
-        $newValue = $plan->direction === 'in' ? $current + $cash : $current - $cash;
+
+        // A percentage moves the value by a share of what it is worth right now
+        // (e.g. +2% appreciation a year); a cash amount moves it by a fixed sum.
+        if ($plan->amount_kind === 'percent') {
+            $delta = $current * ((float) $plan->amount / 100);
+            $note = ($plan->direction === 'in' ? '+' : '−').rtrim(rtrim(number_format($plan->amount, 4, '.', ''), '0'), '.').'%';
+        } else {
+            $delta = $this->fx->convert((float) $plan->amount, $plan->currency ?: $assetCcy, $assetCcy);
+            $note = null;
+        }
+
+        $newValue = $plan->direction === 'in' ? $current + $delta : $current - $delta;
 
         if ($newValue < 0) {
             return $this->skip($plan, $on, 'Would take the value below zero');
@@ -207,10 +216,11 @@ class PlanRunner
         $holding->save();
 
         return $this->record($plan, $on, 'applied', [
-            'cash_amount' => (float) $plan->amount,
-            'cash_currency' => $plan->currency ?: $assetCcy,
+            'cash_amount' => $plan->amount_kind === 'percent' ? $delta : (float) $plan->amount,
+            'cash_currency' => $plan->amount_kind === 'percent' ? $assetCcy : ($plan->currency ?: $assetCcy),
             'asset_currency' => $assetCcy,
             'resulting_value' => $newValue,
+            'note' => $note,
         ]);
     }
 

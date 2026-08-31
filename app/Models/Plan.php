@@ -26,10 +26,13 @@ class Plan extends Model
     /** `in` adds (buy / draw down debt / raise value); `out` subtracts. */
     public const DIRECTIONS = ['in', 'out'];
 
-    /** How `amount` is expressed. `units` is only valid for the `quantity` target. */
-    public const KINDS = ['units', 'cash'];
+    /**
+     * How `amount` is expressed. `units` is only valid for the `quantity` target;
+     * `percent` (a share of the current value) is only valid for the `value` target.
+     */
+    public const KINDS = ['units', 'cash', 'percent'];
 
-    public const FREQUENCIES = ['weekly', 'monthly', 'quarterly', 'yearly'];
+    public const FREQUENCIES = ['weekly', 'monthly', 'quarterly', 'half_yearly', 'yearly'];
 
     protected $fillable = [
         'holding_id',
@@ -84,6 +87,7 @@ class Plan extends Model
         return match ($this->frequency) {
             'weekly' => $from->addWeek(),
             'quarterly' => $from->addMonthsNoOverflow(3),
+            'half_yearly' => $from->addMonthsNoOverflow(6),
             'yearly' => $from->addYearNoOverflow(),
             default => $from->addMonthNoOverflow(),
         };
@@ -107,11 +111,22 @@ class Plan extends Model
         return $this->target === 'quantity';
     }
 
+    public static function frequencyLabel(string $frequency): string
+    {
+        return [
+            'weekly' => 'Weekly',
+            'monthly' => 'Monthly',
+            'quarterly' => 'Quarterly',
+            'half_yearly' => 'Half-yearly',
+            'yearly' => 'Yearly',
+        ][$frequency] ?? ucfirst($frequency);
+    }
+
     /** Human summary used in lists and headings. */
     public function label(): string
     {
         $symbol = $this->holding?->asset?->symbol ?? 'position';
-        $freq = ucfirst($this->frequency);
+        $freq = self::frequencyLabel($this->frequency);
 
         $verb = match (true) {
             $this->target === 'quantity' => $this->direction === 'in' ? 'Buy' : 'Sell',
@@ -119,9 +134,11 @@ class Plan extends Model
             default => $this->direction === 'in' ? 'Add value to' : 'Reduce value of',
         };
 
-        $qty = $this->amount_kind === 'units'
-            ? rtrim(rtrim(number_format($this->amount, 8, '.', ''), '0'), '.')
-            : Money::format($this->amount, $this->currency ?? 'EUR');
+        $qty = match ($this->amount_kind) {
+            'units' => rtrim(rtrim(number_format($this->amount, 8, '.', ''), '0'), '.').' units',
+            'percent' => rtrim(rtrim(number_format($this->amount, 4, '.', ''), '0'), '.').'%',
+            default => Money::format($this->amount, $this->currency ?? 'EUR'),
+        };
 
         return "{$verb} {$symbol} · {$qty} · {$freq}";
     }

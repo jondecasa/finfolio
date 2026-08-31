@@ -11,7 +11,7 @@
         }
         : 'buy';
 
-    $freqLabels = ['weekly' => 'Weekly', 'monthly' => 'Monthly', 'quarterly' => 'Quarterly', 'yearly' => 'Yearly'];
+    $freqLabels = ['weekly' => 'Weekly', 'monthly' => 'Monthly', 'quarterly' => 'Quarterly', 'half_yearly' => 'Half-yearly', 'yearly' => 'Yearly'];
 @endphp
 
 @if ($holdings->isEmpty())
@@ -53,11 +53,18 @@
               get current() { return this.movements.find(m => m.k === this.movement) || this.movements[0]; },
               get outTarget() { return this.current.t; },
               get outDirection() { return this.current.d; },
-              get outAmountKind() { return this.isPriced ? this.amountKind : 'cash'; },
+              get allowedKinds() {
+                  if (this.outTarget === 'quantity') return ['units', 'cash'];
+                  if (this.outTarget === 'value') return ['cash', 'percent'];
+                  return ['cash'];
+              },
+              kindLabel(k) { return ({ units: 'Units', cash: 'Money', percent: '%' })[k] || k; },
+              get outAmountKind() { return this.allowedKinds.includes(this.amountKind) ? this.amountKind : this.allowedKinds[0]; },
               get needsCurrency() { return this.outAmountKind === 'cash'; },
+              get isPercent() { return this.outAmountKind === 'percent'; },
               reconcile() {
                   if (!this.movements.find(m => m.k === this.movement)) this.movement = this.movements[0].k;
-                  if (!this.isPriced) this.amountKind = 'cash';
+                  if (!this.allowedKinds.includes(this.amountKind)) this.amountKind = this.allowedKinds[0];
                   if (this.selected && this.needsCurrency && !this.currency) this.currency = this.selected.cost_currency;
               },
           }"
@@ -110,10 +117,13 @@
         <div>
             <div class="mb-1.5 flex items-center justify-between">
                 <label class="block text-sm font-semibold text-muted"
-                       x-text="outAmountKind === 'units' ? 'Units per run' : 'Amount per run'"></label>
-                <div class="flex gap-1" x-show="isPriced">
-                    <button type="button" class="pill" :class="amountKind === 'units' ? 'pill-active' : ''" @click="amountKind = 'units'">Units</button>
-                    <button type="button" class="pill" :class="amountKind === 'cash' ? 'pill-active' : ''" @click="amountKind = 'cash'; if (!currency && selected) currency = selected.cost_currency">Money</button>
+                       x-text="outAmountKind === 'units' ? 'Units per run' : (isPercent ? 'Percent per run' : 'Amount per run')"></label>
+                <div class="flex gap-1" x-show="allowedKinds.length > 1">
+                    <template x-for="k in allowedKinds" :key="k">
+                        <button type="button" class="pill" :class="amountKind === k ? 'pill-active' : ''"
+                                @click="amountKind = k; if (k === 'cash' && !currency && selected) currency = selected.cost_currency"
+                                x-text="kindLabel(k)"></button>
+                    </template>
                 </div>
             </div>
             <div class="flex gap-3">
@@ -124,9 +134,13 @@
                         <option value="{{ $c }}">{{ $c }}</option>
                     @endforeach
                 </select>
+                <span class="flex items-center px-1 text-lg font-semibold text-muted" x-show="isPercent" x-cloak>%</span>
             </div>
-            <p class="mt-1 text-xs text-muted" x-show="outAmountKind === 'cash'" x-cloak>
+            <p class="mt-1 text-xs text-muted" x-show="outAmountKind === 'cash' && outTarget === 'quantity'" x-cloak>
                 The price on the day it runs decides how many units that buys.
+            </p>
+            <p class="mt-1 text-xs text-muted" x-show="isPercent" x-cloak>
+                A share of the current value each run — e.g. 2 grows the value 2% per run.
             </p>
         </div>
 

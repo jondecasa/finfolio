@@ -200,6 +200,12 @@ class PlanController extends Controller
             ]);
         }
 
+        if ($data['amount_kind'] === 'percent' && $data['target'] !== 'value') {
+            throw ValidationException::withMessages([
+                'amount_kind' => 'A percentage only applies to a value adjustment.',
+            ]);
+        }
+
         return $data;
     }
 

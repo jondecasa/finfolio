@@ -1,5 +1,5 @@
 @php
-    $freqLabels = ['weekly' => 'Weekly', 'monthly' => 'Monthly', 'quarterly' => 'Quarterly', 'yearly' => 'Yearly'];
+    $freqLabels = ['weekly' => 'Weekly', 'monthly' => 'Monthly', 'quarterly' => 'Quarterly', 'half_yearly' => 'Half-yearly', 'yearly' => 'Yearly'];
     $asset = $plan->holding->asset;
     $num = fn ($v) => $v === null ? '—' : rtrim(rtrim(number_format((float) $v, 8, '.', ''), '0'), '.');
 @endphp
@@ -37,6 +37,8 @@
                     <dd class="font-semibold">
                         @if ($plan->amount_kind === 'units')
                             {{ $num($plan->amount) }} units
+                        @elseif ($plan->amount_kind === 'percent')
+                            {{ $num($plan->amount) }}% of current value
                         @else
                             {{ \App\Support\Money::format((float) $plan->amount, $plan->currency ?? 'EUR') }}
                         @endif
@@ -99,16 +101,17 @@
                                 </div>
                             @else
                                 <div class="text-sm font-semibold">
+                                    @if ($run->note && $run->resulting_debt === null){{ $run->note }} · @endif
                                     {{ \App\Support\Money::format((float) $run->cash_amount, $run->cash_currency ?? 'EUR') }}
                                     @if ($run->resulting_debt !== null) to debt @else to value @endif
                                 </div>
                                 <div class="text-xs text-muted">
                                     @if ($run->resulting_debt !== null)
                                         debt now {{ \App\Support\Money::format((float) $run->resulting_debt, $run->asset_currency ?? 'EUR') }}
+                                        @if ($run->note) · {{ $run->note }} @endif
                                     @else
                                         value now {{ \App\Support\Money::format((float) $run->resulting_value, $run->asset_currency ?? 'EUR') }}
                                     @endif
-                                    @if ($run->note) · {{ $run->note }} @endif
                                 </div>
                             @endif
                         </div>

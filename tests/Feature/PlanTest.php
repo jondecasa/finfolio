@@ -204,6 +204,62 @@ class PlanTest extends TestCase
         $this->assertEqualsWithDelta(0, $holding->debt, 1e-6);
     }
 
+    public function test_percentage_value_plan_appreciates_a_property(): void
+    {
+        [$user, $account] = $this->userWithAccount('EUR');
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'HOUSE', 'name' => 'House', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 200000, 'manual_value' => 200000, 'debt' => 0,
+        ]);
+
+        $plan = $this->plan($holding, [
+            'target' => 'value', 'direction' => 'in', 'amount_kind' => 'percent', 'amount' => 2,
+            'frequency' => 'yearly', 'currency' => null,
+        ]);
+
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()]);
+        $holding->refresh();
+        $this->assertEqualsWithDelta(204000, $holding->manual_value, 1e-6); // +2%
+
+        // Compounds on the new value the next time it runs.
+        $plan->refresh();
+        $plan->update(['next_run_on' => CarbonImmutable::today()]);
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()]);
+        $holding->refresh();
+        $this->assertEqualsWithDelta(208080, $holding->manual_value, 1e-6); // 204000 * 1.02
+    }
+
+    public function test_percentage_is_rejected_for_a_non_value_movement(): void
+    {
+        [$user, $account] = $this->userWithAccount();
+        $holding = $this->pricedHolding($account, 1.0, 100, 100);
+
+        $this->actingAs($user)->from('/plans/create')->post('/plans', [
+            'holding_id' => $holding->id,
+            'target' => 'quantity', 'direction' => 'in',
+            'amount_kind' => 'percent', 'amount' => 2,
+            'frequency' => 'monthly', 'starts_on' => CarbonImmutable::today()->toDateString(),
+        ])->assertSessionHasErrors('amount_kind');
+
+        $this->assertDatabaseCount('plans', 0);
+    }
+
+    public function test_half_yearly_plan_advances_six_months(): void
+    {
+        [$user, $account] = $this->userWithAccount();
+        $holding = $this->pricedHolding($account, 1.0, 100, 100);
+        $plan = $this->plan($holding, ['amount' => 1, 'frequency' => 'half_yearly']);
+
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()]);
+
+        $plan->refresh();
+        $this->assertSame(
+            CarbonImmutable::today()->addMonthsNoOverflow(6)->toDateString(),
+            $plan->next_run_on->toDateString(),
+        );
+    }
+
     public function test_missed_periods_are_not_backfilled(): void
     {
         [$user, $account] = $this->userWithAccount();
