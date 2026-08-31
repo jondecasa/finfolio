@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('prices:refresh')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('portfolio:snapshot')->hourly()->withoutOverlapping();
+Schedule::command('plans:run')->dailyAt('05:30')->withoutOverlapping();

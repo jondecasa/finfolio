@@ -29,6 +29,9 @@
                         <a href="{{ route('profile.edit') }}" class="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-white lg:hidden">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
                         </a>
+                        <a href="{{ route('search') }}" class="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-white lg:hidden" title="Search">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm10 17-5-5"/></svg>
+                        </a>
                     @endisset
                     <h1 class="text-2xl font-bold lg:text-3xl">{{ $heading ?? 'Home' }}</h1>
                 </div>

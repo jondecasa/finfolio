@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ChartController;
 use App\Http\Controllers\HoldingController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NetWorthController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PortfolioActionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
@@ -37,6 +38,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/positions/{holding}/edit', [HoldingController::class, 'edit'])->name('holdings.edit');
     Route::put('/positions/{holding}', [HoldingController::class, 'update'])->name('holdings.update');
     Route::delete('/positions/{holding}', [HoldingController::class, 'destroy'])->name('holdings.destroy');
+
+    // Contribution / movement plans
+    Route::get('/plans', [PlanController::class, 'index'])->name('plans.index');
+    Route::get('/plans/create', [PlanController::class, 'create'])->name('plans.create');
+    Route::post('/plans', [PlanController::class, 'store'])->name('plans.store');
+    Route::post('/plans/run-due', [PlanController::class, 'runDue'])->name('plans.runDue');
+    Route::get('/plans/{plan}', [PlanController::class, 'show'])->name('plans.show');
+    Route::get('/plans/{plan}/edit', [PlanController::class, 'edit'])->name('plans.edit');
+    Route::put('/plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
+    Route::post('/plans/{plan}/run', [PlanController::class, 'run'])->name('plans.run');
+    Route::delete('/plans/{plan}', [PlanController::class, 'destroy'])->name('plans.destroy');
 
     // Accounts
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');

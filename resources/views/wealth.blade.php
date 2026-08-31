@@ -49,6 +49,21 @@
         </div>
     </div>
 
+    <div class="app-pad mt-4">
+        <a href="{{ route('plans.index') }}" class="row-link card">
+            <div class="flex items-center gap-3">
+                <span class="logo-bubble bg-ink-600">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+                </span>
+                <div>
+                    <div class="font-semibold">Recurring movements</div>
+                    <div class="text-xs text-muted">Automatic buys, sells and debt paydown</div>
+                </div>
+            </div>
+            <span class="shrink-0 text-muted">&rsaquo;</span>
+        </a>
+    </div>
+
     <div class="app-pad mt-6"
          x-data="{
              types: [],
