@@ -140,10 +140,13 @@ class PlanRunner
         }
 
         if ($plan->direction === 'in') {
-            $oldAvg = $holding->average_cost !== null ? (float) $holding->average_cost : $priceInCost;
+            // Weighted average over every share: (old shares × old avg + bought × price) ÷ total.
+            // A position with no recorded cost basis contributes zero, matching
+            // Holding::costBasis(); the user can set the real buy price on the position.
+            $oldAvg = (float) ($holding->average_cost ?? 0);
             $holding->average_cost = $newQty > 0
                 ? ((float) $holding->quantity * $oldAvg + $units * $priceInCost) / $newQty
-                : $oldAvg;
+                : $priceInCost;
             $holding->cost_currency = $holding->cost_currency ?: $costCcy;
         }
 

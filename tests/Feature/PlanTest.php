@@ -96,6 +96,47 @@ class PlanTest extends TestCase
         $this->assertDatabaseHas('plan_runs', ['status' => 'applied']);
     }
 
+    public function test_buy_into_a_stock_reweights_average_over_all_shares(): void
+    {
+        // User's example: hold 1 share bought at 100, plan buys 1 more at 150 -> avg 125.
+        [$user, $account] = $this->userWithAccount('EUR');
+        $asset = Asset::create([
+            'type' => 'stock', 'symbol' => 'ACME', 'name' => 'Acme', 'currency' => 'EUR',
+            'current_price' => 150, 'previous_close' => 150, 'price_updated_at' => now(),
+        ]);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $asset->id,
+            'quantity' => 1, 'average_cost' => 100, 'cost_currency' => 'EUR',
+        ]);
+        $this->plan($holding, ['amount' => 1, 'direction' => 'in']);
+
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()]);
+
+        $holding->refresh();
+        $this->assertEqualsWithDelta(2, $holding->quantity, 1e-9);
+        $this->assertEqualsWithDelta(125, $holding->average_cost, 1e-9);
+    }
+
+    public function test_buy_into_a_position_with_no_recorded_cost_basis(): void
+    {
+        // No average_cost on the holding: the untracked shares count as zero cost,
+        // consistent with Holding::costBasis(). 1 untracked + 1 bought at 150 -> 75.
+        [$user, $account] = $this->userWithAccount('EUR');
+        $asset = Asset::create([
+            'type' => 'stock', 'symbol' => 'NOBASIS', 'name' => 'No basis', 'currency' => 'EUR',
+            'current_price' => 150, 'previous_close' => 150, 'price_updated_at' => now(),
+        ]);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $asset->id, 'quantity' => 1,
+        ]);
+        $this->plan($holding, ['amount' => 1, 'direction' => 'in']);
+
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()]);
+
+        $holding->refresh();
+        $this->assertEqualsWithDelta(75, $holding->average_cost, 1e-9);
+    }
+
     public function test_buy_cash_plan_derives_units_from_the_days_price(): void
     {
         [$user, $account] = $this->userWithAccount('EUR');

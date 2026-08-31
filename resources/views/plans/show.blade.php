@@ -93,6 +93,9 @@
                                 <div class="text-xs text-muted">
                                     at {{ \App\Support\Money::format((float) $run->unit_price, $run->asset_currency ?? 'USD') }}
                                     · now {{ $num($run->resulting_quantity) }}
+                                    @if ($run->units_delta > 0 && $run->resulting_avg_cost !== null)
+                                        · avg {{ \App\Support\Money::format((float) $run->resulting_avg_cost, $plan->holding->costCurrency()) }}
+                                    @endif
                                 </div>
                             @else
                                 <div class="text-sm font-semibold">
