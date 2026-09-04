@@ -63,10 +63,12 @@
         </div>
     </div>
 
-    <a href="{{ route('holdings.create') }}"
-       class="fixed bottom-24 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-white text-ink shadow-lg shadow-black/40 active:scale-95 lg:hidden">
-        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
-    </a>
+    @if (request()->routeIs('home', 'positions'))
+        <a href="{{ route('holdings.create') }}"
+           class="fixed bottom-24 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-white text-ink shadow-lg shadow-black/40 active:scale-95 lg:hidden">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+        </a>
+    @endif
 
     <x-bottom-nav />
 </body>
