@@ -105,7 +105,9 @@ class PortfolioTest extends TestCase
             ->get('/home')
             ->assertOk()
             ->assertSee('Total Net Worth')
-            ->assertSee('Bitcoin');
+            ->assertSee('Bitcoin')
+            ->assertSee('Cash balance')
+            ->assertSee('Liabilities');
     }
 
     public function test_guest_is_redirected_to_login(): void
@@ -113,27 +115,29 @@ class PortfolioTest extends TestCase
         $this->get('/home')->assertRedirect('/login');
     }
 
-    public function test_wealth_screen_can_be_filtered_to_one_account(): void
+    public function test_positions_screen_can_be_filtered_to_one_account(): void
     {
         $user = $this->makePortfolio();
-        $main = $user->accounts()->first();
 
         $other = $user->accounts()->create(['name' => 'Side pot', 'currency' => 'EUR']);
         $sol = Asset::create(['type' => 'crypto', 'symbol' => 'SOL', 'name' => 'Solana', 'currency' => 'USD', 'current_price' => 200]);
         Holding::create(['account_id' => $other->id, 'asset_id' => $sol->id, 'quantity' => 3, 'average_cost' => 100]);
 
         // Unfiltered shows everything.
-        $this->actingAs($user)->get('/wealth')
+        $this->actingAs($user)->get('/positions')
             ->assertOk()->assertSee('Bitcoin')->assertSee('Solana');
 
         // Filtered to the side account shows only its holding.
-        $this->actingAs($user)->get('/wealth?account='.$other->id)
+        $this->actingAs($user)->get('/positions?account='.$other->id)
             ->assertOk()->assertSee('Solana')->assertDontSee('Bitcoin');
 
         // Another user's account id is rejected.
         $stranger = User::factory()->create();
         $strangerAccount = $stranger->accounts()->create(['name' => 'x', 'currency' => 'EUR']);
-        $this->actingAs($user)->get('/wealth?account='.$strangerAccount->id)->assertNotFound();
+        $this->actingAs($user)->get('/positions?account='.$strangerAccount->id)->assertNotFound();
+
+        // Old URL still lands on the new screen.
+        $this->actingAs($user)->get('/wealth')->assertRedirect('/positions');
     }
 
     public function test_series_endpoint_returns_points(): void

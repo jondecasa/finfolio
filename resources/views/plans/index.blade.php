@@ -3,7 +3,7 @@
     $today = \Carbon\CarbonImmutable::today();
 @endphp
 
-<x-layouts.mobile heading="Plans" title="Finfolio · Plans" :back="route('wealth')">
+<x-layouts.mobile heading="Plans" title="Finfolio · Plans">
     <div class="app-pad lg:mx-auto lg:max-w-2xl">
 
         <div class="mb-4 flex items-center gap-2">

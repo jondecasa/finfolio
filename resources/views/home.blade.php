@@ -95,7 +95,7 @@
         </div>
         <div class="card divide-y divide-white/5">
             @foreach ($overview['accounts'] as $row)
-                <a href="{{ route('wealth', ['account' => $row['account']->id]) }}" class="row-link">
+                <a href="{{ route('positions', ['account' => $row['account']->id]) }}" class="row-link">
                     <div class="flex items-center gap-3">
                         <span class="logo-bubble bg-ink-600">{{ \Illuminate\Support\Str::substr($row['account']->name, 0, 1) }}</span>
                         <div>
@@ -113,5 +113,52 @@
             @endforeach
         </div>
     </div>
+    </div>
+
+    <div class="mt-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+        {{-- Cash balance --}}
+        <div class="app-pad lg:mt-0">
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-lg font-bold">Cash balance</h2>
+                <a href="{{ route('holdings.create', ['type' => 'cash']) }}" class="text-2xl leading-none text-muted hover:text-white">+</a>
+            </div>
+            <div class="card">
+                @if ($overview['cash_total'] > 0)
+                    <div class="flex items-center justify-between">
+                        <span class="text-muted">Total cash</span>
+                        <x-money :amount="$overview['cash_total']" :currency="$currency" :hidden="$hidden" class="text-xl font-bold" />
+                    </div>
+                @else
+                    <p class="text-center font-semibold">No cash added</p>
+                    <p class="mt-1 text-center text-sm text-muted">Add a <span class="text-white">Cash</span> position to include pure cash in your net worth.</p>
+                @endif
+            </div>
+        </div>
+
+        {{-- Liabilities --}}
+        <div class="app-pad mt-6 lg:mt-0">
+            <h2 class="mb-3 text-lg font-bold">Liabilities</h2>
+            <div class="card">
+                @if ($overview['total_debt'] > 0)
+                    <div class="flex items-center justify-between">
+                        <span class="text-muted">Total debt</span>
+                        <span class="value-down text-xl font-bold">
+                            − <x-money :amount="$overview['total_debt']" :currency="$currency" :hidden="$hidden" />
+                        </span>
+                    </div>
+                    <div class="mt-3 divide-y divide-white/5">
+                        @foreach ($overview['debt_holdings'] as $row)
+                            <a href="{{ route('holdings.edit', $row['holding']) }}" class="row-link text-sm">
+                                <span class="truncate">{{ $row['holding']->asset->name }}</span>
+                                <span class="value-down font-semibold">− <x-money :amount="$row['debt']" :currency="$currency" :hidden="$hidden" /></span>
+                            </a>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-center font-semibold">No liabilities</p>
+                    <p class="mt-1 text-center text-sm text-muted">A mortgage on a <span class="text-white">Real estate</span> position shows up here.</p>
+                @endif
+            </div>
+        </div>
     </div>
 </x-layouts.mobile>

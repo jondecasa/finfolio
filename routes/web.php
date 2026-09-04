@@ -6,12 +6,11 @@ use App\Http\Controllers\Api\AssetSearchController;
 use App\Http\Controllers\Api\ChartController;
 use App\Http\Controllers\HoldingController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\NetWorthController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PortfolioActionController;
+use App\Http\Controllers\PositionsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
-use App\Http\Controllers\WealthController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -26,12 +25,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::get('/dashboard', fn () => redirect()->route('home'))->name('dashboard');
 
-    Route::get('/net-worth', [NetWorthController::class, 'index'])->name('networth');
+    // Kept so old links / bookmarks still land somewhere useful.
+    Route::get('/net-worth', fn () => redirect()->route('home'))->name('networth');
+    Route::get('/wealth', fn () => redirect()->route('positions'))->name('wealth');
+
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
-    Route::get('/wealth', [WealthController::class, 'index'])->name('wealth');
     Route::get('/discover', [SearchController::class, 'index'])->name('search');
 
     // Positions
+    Route::get('/positions', [PositionsController::class, 'index'])->name('positions');
     Route::get('/positions/create', [HoldingController::class, 'create'])->name('holdings.create');
     Route::post('/positions', [HoldingController::class, 'store'])->name('holdings.store');
     Route::get('/positions/{holding}', [HoldingController::class, 'show'])->name('holdings.show');

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\PortfolioService;
 use Illuminate\Http\Request;
 
-class WealthController extends Controller
+class PositionsController extends Controller
 {
     public function __construct(protected PortfolioService $portfolio) {}
 
@@ -55,7 +55,7 @@ class WealthController extends Controller
             $summary = $overview;
         }
 
-        return view('wealth', [
+        return view('positions', [
             'summary' => $summary,
             'positions' => $positions,
             'account' => $account,

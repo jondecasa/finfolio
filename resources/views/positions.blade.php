@@ -13,18 +13,13 @@
     $allRowTypes = $positions->map(fn ($p) => $p['holding']->displayType())->values();
 @endphp
 
-<x-layouts.mobile heading="Wealth" title="Finfolio · Wealth" wide>
+<x-layouts.mobile heading="Positions" title="Finfolio · Positions" wide>
     <div class="app-pad">
-        <div class="flex gap-6 border-b border-white/5 pb-2 text-lg font-bold">
-            <a href="{{ route('networth') }}" class="text-muted hover:text-white">Overview</a>
-            <span class="text-white">Investments</span>
-        </div>
-
         {{-- Account filter --}}
-        <div class="no-scrollbar -mx-5 mt-4 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:flex-wrap lg:px-0">
-            <a href="{{ route('wealth') }}" class="tab shrink-0 {{ $account ? '' : 'tab-active' }}">All accounts</a>
+        <div class="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:flex-wrap lg:px-0">
+            <a href="{{ route('positions') }}" class="tab shrink-0 {{ $account ? '' : 'tab-active' }}">All accounts</a>
             @foreach ($accounts as $acc)
-                <a href="{{ route('wealth', ['account' => $acc->id]) }}"
+                <a href="{{ route('positions', ['account' => $acc->id]) }}"
                    class="tab shrink-0 {{ $account && $account->id === $acc->id ? 'tab-active' : '' }}">{{ $acc->name }}</a>
             @endforeach
         </div>
@@ -47,21 +42,6 @@
                 <x-change :value="$summary['day_change']" :pct="$summary['day_change_pct']" :currency="$currency" :hidden="$hidden" class="mt-1 text-lg" />
             </div>
         </div>
-    </div>
-
-    <div class="app-pad mt-4">
-        <a href="{{ route('plans.index') }}" class="row-link card">
-            <div class="flex items-center gap-3">
-                <span class="logo-bubble bg-ink-600">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3"/></svg>
-                </span>
-                <div>
-                    <div class="font-semibold">Recurring movements</div>
-                    <div class="text-xs text-muted">Automatic buys, sells and debt paydown</div>
-                </div>
-            </div>
-            <span class="shrink-0 text-muted">&rsaquo;</span>
-        </a>
     </div>
 
     <div class="app-pad mt-6"
