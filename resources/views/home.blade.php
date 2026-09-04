@@ -48,47 +48,8 @@
         <x-net-worth-chart :series="$series" :ranges="$ranges" :active-range="$activeRange" :height="230" :lg-height="360" />
     </div>
 
-    <div class="mt-8 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
-    {{-- Allocation preview --}}
-    <div class="app-pad lg:mt-0">
-        <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-lg font-bold">Allocation</h2>
-            <a href="{{ route('analytics') }}" class="text-sm text-muted hover:text-white">See all</a>
-        </div>
-        <div class="card space-y-4">
-            @forelse ($allocation['positions']->take(5) as $p)
-                <div class="row-link !py-0">
-                    <div class="flex min-w-0 items-center gap-3">
-                        <span class="logo-bubble">
-                            @if ($p['logo_url'])
-                                <img src="{{ $p['logo_url'] }}" alt="" class="h-full w-full object-cover">
-                            @else
-                                {{ \Illuminate\Support\Str::substr($p['symbol'], 0, 3) }}
-                            @endif
-                        </span>
-                        <div class="min-w-0">
-                            <div class="truncate font-semibold">{{ $p['name'] }}</div>
-                            <div class="text-xs text-muted">{{ number_format($p['weight'], 1) }}%</div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <x-money :amount="$p['value']" :currency="$currency" :hidden="$hidden" class="block font-semibold" />
-                        @if ($p['day_change_pct'] !== null)
-                            <x-change :pct="$p['day_change_pct']" class="text-xs" />
-                        @endif
-                    </div>
-                </div>
-                @if (! $loop->last)<div class="h-px bg-white/5"></div>@endif
-            @empty
-                <p class="py-6 text-center text-sm text-muted">
-                    No positions yet. Tap <span class="font-semibold text-white">+</span> to add your first one.
-                </p>
-            @endforelse
-        </div>
-    </div>
-
     {{-- Accounts --}}
-    <div class="app-pad mt-6 lg:mt-0">
+    <div class="app-pad mt-8">
         <div class="mb-3 flex items-center justify-between">
             <h2 class="text-lg font-bold">Accounts</h2>
             <a href="{{ route('accounts.index') }}" class="text-sm text-muted hover:text-white">Manage</a>
@@ -112,7 +73,6 @@
                 </a>
             @endforeach
         </div>
-    </div>
     </div>
 
     <div class="mt-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">

@@ -1,5 +1,4 @@
 @php
-    $currency = $summary['currency'];
     $hidden = auth()->user()->values_hidden;
 
     // Asset types present in the current holdings, ordered like the category list.
@@ -22,25 +21,6 @@
                 <a href="{{ route('positions', ['account' => $acc->id]) }}"
                    class="tab shrink-0 {{ $account && $account->id === $acc->id ? 'tab-active' : '' }}">{{ $acc->name }}</a>
             @endforeach
-        </div>
-
-        <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div class="card-tight">
-                <div class="text-xs text-muted">Market value</div>
-                <x-money :amount="$summary['total_value']" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
-            </div>
-            <div class="card-tight">
-                <div class="text-xs text-muted">Invested</div>
-                <x-money :amount="$summary['total_invested']" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
-            </div>
-            <div class="card-tight">
-                <div class="text-xs text-muted">Total return</div>
-                <x-change :value="$summary['total_gain']" :pct="$summary['total_gain_pct']" :currency="$currency" :hidden="$hidden" class="mt-1 text-lg" />
-            </div>
-            <div class="card-tight">
-                <div class="text-xs text-muted">Today</div>
-                <x-change :value="$summary['day_change']" :pct="$summary['day_change_pct']" :currency="$currency" :hidden="$hidden" class="mt-1 text-lg" />
-            </div>
         </div>
     </div>
 

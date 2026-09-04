@@ -105,14 +105,51 @@ class PortfolioTest extends TestCase
             ->get('/home')
             ->assertOk()
             ->assertSee('Total Net Worth')
-            ->assertSee('Bitcoin')
+            ->assertSee('Accounts')
             ->assertSee('Cash balance')
-            ->assertSee('Liabilities');
+            ->assertSee('Liabilities')
+            ->assertDontSee('Allocation');
     }
 
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get('/home')->assertRedirect('/login');
+    }
+
+    public function test_analytics_screen_shows_stats_and_filters_by_account(): void
+    {
+        $user = $this->makePortfolio();
+        $main = $user->accounts()->first();
+
+        $this->actingAs($user)->get('/analytics')
+            ->assertOk()
+            ->assertSee('Net value')
+            ->assertSee('Liabilities')
+            ->assertSee('Total return')
+            ->assertSee('Bitcoin');
+
+        $this->actingAs($user)->get('/analytics?account='.$main->id)->assertOk()->assertSee('Bitcoin');
+
+        $stranger = User::factory()->create();
+        $strangerAccount = $stranger->accounts()->create(['name' => 'x', 'currency' => 'EUR']);
+        $this->actingAs($user)->get('/analytics?account='.$strangerAccount->id)->assertNotFound();
+    }
+
+    public function test_analytics_total_return_is_net_of_debt(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 100, 'manual_value' => 150, 'debt' => 40,
+        ]);
+
+        // Net value 150 − 40 = 110; invested 100 → total return +€10.00 (not the +€50 the gross gain would show).
+        $this->actingAs($user)->get('/analytics')
+            ->assertOk()
+            ->assertSee('€10.00')
+            ->assertDontSee('€50.00');
     }
 
     public function test_positions_screen_can_be_filtered_to_one_account(): void

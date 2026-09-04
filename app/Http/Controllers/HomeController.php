@@ -16,12 +16,10 @@ class HomeController extends Controller
 
         $overview = $this->portfolio->overview($user);
         $series = $this->portfolio->series($user, $range);
-        $allocation = $this->portfolio->allocation($user);
 
         return view('home', [
             'overview' => $overview,
             'series' => $series,
-            'allocation' => $allocation,
             'ranges' => config('finfolio.ranges'),
             'activeRange' => $range,
         ]);

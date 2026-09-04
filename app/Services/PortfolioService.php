@@ -173,10 +173,11 @@ class PortfolioService
      *
      * @return array<string, mixed>
      */
-    public function allocation(User $user): array
+    public function allocation(User $user, ?int $accountId = null): array
     {
         $base = $this->baseCurrency($user);
-        $holdings = $this->holdings($user);
+        $holdings = $this->holdings($user)
+            ->when($accountId, fn ($c) => $c->where('account_id', $accountId));
         $total = 0.0;
 
         $positions = $holdings->map(function (Holding $holding) use ($base, &$total) {

@@ -12,8 +12,7 @@ class PositionsController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $overview = $this->portfolio->overview($user);
-        $base = $overview['currency'];
+        $base = $this->portfolio->baseCurrency($user);
 
         // Optional filter to a single account.
         $account = null;
@@ -39,24 +38,8 @@ class PositionsController extends Controller
             ];
         })->sortByDesc('value')->values();
 
-        // Headline figures: whole portfolio, or just the picked account.
-        if ($account) {
-            $row = collect($overview['accounts'])->firstWhere('account.id', $account->id);
-            $summary = [
-                'currency' => $base,
-                'total_value' => $row['value'] ?? 0,
-                'total_invested' => $row['invested'] ?? 0,
-                'total_gain' => $row['gain'] ?? 0,
-                'total_gain_pct' => $row['gain_pct'] ?? null,
-                'day_change' => $row['day_change'] ?? 0,
-                'day_change_pct' => $row['day_change_pct'] ?? null,
-            ];
-        } else {
-            $summary = $overview;
-        }
-
         return view('positions', [
-            'summary' => $summary,
+            'currency' => $base,
             'positions' => $positions,
             'account' => $account,
             'accounts' => $user->accounts()->get(),

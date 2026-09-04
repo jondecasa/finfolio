@@ -29,7 +29,7 @@
     $typeSegments = $buildSegments($allocation['by_type'], 'label');
 @endphp
 
-<x-layouts.mobile heading="Allocation" title="Finfolio · Allocation">
+<x-layouts.mobile heading="Analytics" title="Finfolio · Analytics">
     <div class="lg:mx-auto lg:max-w-3xl"
          x-data="{
              tab: @js($tab),
@@ -64,7 +64,40 @@
                  this.$watch('tab', () => this.draw());
              },
          }">
-        <div class="no-scrollbar app-pad flex gap-2 overflow-x-auto pb-2">
+        {{-- Account filter --}}
+        <div class="no-scrollbar app-pad flex gap-2 overflow-x-auto pb-1 pt-1">
+            <a href="{{ route('analytics', ['tab' => $tab]) }}" class="tab shrink-0 {{ $account ? '' : 'tab-active' }}">All accounts</a>
+            @foreach ($accounts as $acc)
+                <a href="{{ route('analytics', ['account' => $acc->id, 'tab' => $tab]) }}"
+                   class="tab shrink-0 {{ $account && $account->id === $acc->id ? 'tab-active' : '' }}">{{ $acc->name }}</a>
+            @endforeach
+        </div>
+
+        {{-- Headline stats --}}
+        <div class="app-pad mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div class="card-tight">
+                <div class="text-xs text-muted">Net value</div>
+                <x-money :amount="$summary['net_value']" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
+            </div>
+            <div class="card-tight">
+                <div class="text-xs text-muted">Liabilities</div>
+                @if ($summary['liabilities'] > 0)
+                    <span class="value-down mt-1 block text-xl font-bold">− <x-money :amount="$summary['liabilities']" :currency="$currency" :hidden="$hidden" /></span>
+                @else
+                    <x-money :amount="0" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
+                @endif
+            </div>
+            <div class="card-tight">
+                <div class="text-xs text-muted">Total return</div>
+                <x-change :value="$summary['total_return']" :pct="$summary['total_return_pct']" :currency="$currency" :hidden="$hidden" class="mt-1 text-lg" />
+            </div>
+            <div class="card-tight">
+                <div class="text-xs text-muted">Today</div>
+                <x-change :value="$summary['day_change']" :pct="$summary['day_change_pct']" :currency="$currency" :hidden="$hidden" class="mt-1 text-lg" />
+            </div>
+        </div>
+
+        <div class="no-scrollbar app-pad mt-5 flex gap-2 overflow-x-auto pb-2">
             @foreach (['positions' => 'All positions', 'type' => 'Type'] as $key => $label)
                 <button type="button" @click="tab = '{{ $key }}'" class="tab" :class="tab === '{{ $key }}' ? 'tab-active' : ''">{{ $label }}</button>
             @endforeach
