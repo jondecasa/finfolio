@@ -82,6 +82,22 @@ class PlanTest extends TestCase
         $this->assertDatabaseHas('plans', ['holding_id' => $holding->id, 'amount' => 0.25, 'target' => 'quantity']);
     }
 
+    public function test_deleting_a_position_cascades_to_its_plans_and_plan_runs(): void
+    {
+        [$user, $account] = $this->userWithAccount();
+        $holding = $this->pricedHolding($account, 1.5, 20000, 30000, 'USD');
+        $plan = $this->plan($holding);
+
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()])->assertExitCode(0);
+        $this->assertDatabaseHas('plan_runs', ['plan_id' => $plan->id]);
+
+        $this->actingAs($user)->delete(route('holdings.destroy', $holding))->assertRedirect();
+
+        $this->assertDatabaseMissing('holdings', ['id' => $holding->id]);
+        $this->assertDatabaseMissing('plans', ['id' => $plan->id]);
+        $this->assertDatabaseMissing('plan_runs', ['plan_id' => $plan->id]);
+    }
+
     public function test_buy_units_plan_raises_quantity_and_reweights_average_cost(): void
     {
         [$user, $account] = $this->userWithAccount();
