@@ -27,6 +27,7 @@ class PositionsController extends Controller
         $positions = $holdings->map(function ($h) use ($base) {
             $value = $this->portfolio->holdingValue($h, $base);
             $invested = $this->portfolio->holdingInvested($h, $base);
+            $equityInvested = $this->portfolio->holdingEquityInvested($h, $base);
 
             return [
                 'holding' => $h,
@@ -34,6 +35,8 @@ class PositionsController extends Controller
                 'invested' => $invested,
                 'gain' => $this->portfolio->holdingGross($h, $base) - $invested,
                 'gain_pct' => $this->portfolio->holdingGainPct($h, $base),
+                'equity_invested' => $equityInvested,
+                'equity_gain_pct' => $this->portfolio->holdingEquityGainPct($h, $base),
                 'day_change_pct' => $h->asset->dayChangePct(),
             ];
         })->sortByDesc('value')->values();

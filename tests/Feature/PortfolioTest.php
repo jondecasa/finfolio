@@ -152,6 +152,27 @@ class PortfolioTest extends TestCase
             ->assertDontSee('€50.00');
     }
 
+    public function test_analytics_total_return_uses_equity_not_full_price_when_a_down_payment_is_set(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 100, 'manual_value' => 150,
+            'debt' => 40, 'mortgage_down_payment' => 10,
+        ]);
+
+        // Net value 150 − 40 = 110; equity invested is just the €10 down payment
+        // (shown on its own tile) → total return is +€100.00 / +1,000%, not the
+        // +€10.00 / +10% you'd get comparing net value to the full €100 price.
+        $this->actingAs($user)->get('/analytics')
+            ->assertOk()
+            ->assertSee('€10.00')   // Equity invested tile
+            ->assertSee('€100.00')  // Total return value
+            ->assertSee('1,000.00%'); // Total return %
+    }
+
     public function test_positions_screen_can_be_filtered_to_one_account(): void
     {
         $user = $this->makePortfolio();
@@ -219,6 +240,101 @@ class PortfolioTest extends TestCase
         // Legacy row without cost_currency falls back to the asset's currency (USD).
         $holding->update(['cost_currency' => null]);
         $this->assertEqualsWithDelta(810, $portfolio->holdingInvested($holding, 'EUR'), 0.01);
+    }
+
+    public function test_real_estate_invested_equity_nets_off_the_mortgage_down_payment(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id,
+            'asset_id' => $flat->id,
+            'quantity' => 1,
+            'average_cost' => 100,              // purchase price
+            'manual_value' => 150,               // current value
+            'debt' => 40,                        // outstanding mortgage balance
+            'mortgage_down_payment' => 20,        // cash paid upfront
+        ]);
+
+        $cash = Asset::create(['type' => 'cash', 'symbol' => 'CASH-EUR', 'name' => 'EUR cash', 'currency' => 'EUR']);
+        Holding::create(['account_id' => $account->id, 'asset_id' => $cash->id, 'quantity' => 1, 'manual_value' => 500]);
+
+        $portfolio = app(PortfolioService::class);
+
+        // Invested equity is just the down payment (the rest was financed), not the full purchase price.
+        $this->assertEqualsWithDelta(20, $portfolio->holdingEquityInvested($holding, 'EUR'), 0.01);
+        // Net value 150 - 40 = 110; profit on the €20 actually put in is €90 = 450%.
+        $this->assertEqualsWithDelta(450, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
+
+        $overview = $portfolio->overview($user);
+
+        // Total invested equity excludes the cash holding entirely.
+        $this->assertEqualsWithDelta(20, $overview['total_equity_invested'], 0.01);
+        $this->assertEqualsWithDelta(90, $overview['total_equity_gain'], 0.01);
+        $this->assertEqualsWithDelta(450, $overview['total_equity_gain_pct'], 0.01);
+    }
+
+    public function test_real_estate_bought_outright_uses_full_price_as_equity_when_no_down_payment_set(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT2', 'name' => 'Flat 2', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id,
+            'asset_id' => $flat->id,
+            'quantity' => 1,
+            'average_cost' => 100,
+            'manual_value' => 120,
+            // No debt, no mortgage_down_payment — bought outright with cash.
+        ]);
+
+        $portfolio = app(PortfolioService::class);
+
+        $this->assertEqualsWithDelta(100, $portfolio->holdingEquityInvested($holding, 'EUR'), 0.01);
+        $this->assertEqualsWithDelta(20, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
+    }
+
+    public function test_real_estate_ownership_share_scales_every_figure(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+
+        // A 100k flat, 50% owned: purchase/value/debt/down-payment are all
+        // whole-property figures, halved by the ownership share.
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT3', 'name' => 'Flat 3', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id,
+            'asset_id' => $flat->id,
+            'quantity' => 1,
+            'average_cost' => 100000,
+            'manual_value' => 130000,
+            'debt' => 80000,
+            'mortgage_down_payment' => 10000,
+            'ownership_pct' => 50,
+        ]);
+
+        $this->assertEqualsWithDelta(65000, $holding->grossValue(), 0.01);   // 130,000 * 50%
+        $this->assertEqualsWithDelta(40000, $holding->debtAmount(), 0.01);   // 80,000 * 50%
+        $this->assertEqualsWithDelta(25000, $holding->netValue(), 0.01);     // 65,000 - 40,000
+        $this->assertEqualsWithDelta(5000, $holding->investedEquity(), 0.01); // 10,000 * 50%
+        $this->assertEqualsWithDelta(20000, $holding->equityGain(), 0.01);   // 25,000 - 5,000
+        $this->assertEqualsWithDelta(400, $holding->equityGainPct(), 0.01);  // same % as full ownership
+
+        // Default (no ownership_pct passed) is 100% — existing rows are unaffected.
+        $full = Holding::create([
+            'account_id' => $account->id,
+            'asset_id' => Asset::create(['type' => 'realestate', 'symbol' => 'FLAT4', 'name' => 'Flat 4', 'currency' => 'EUR'])->id,
+            'quantity' => 1,
+            'average_cost' => 100000,
+            'manual_value' => 130000,
+            'debt' => 80000,
+            'mortgage_down_payment' => 10000,
+        ]);
+        $this->assertEqualsWithDelta(130000, $full->grossValue(), 0.01);
+        $this->assertEqualsWithDelta(10000, $full->investedEquity(), 0.01);
     }
 
     public function test_user_can_add_a_position(): void

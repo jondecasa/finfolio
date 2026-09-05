@@ -91,11 +91,30 @@
                            value="{{ old('manual_value', $num($holding->manual_value)) }}" required inputmode="decimal">
                 </div>
             </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage down payment</label>
+                    <input type="number" step="any" min="0" name="mortgage_down_payment" class="field"
+                           value="{{ old('mortgage_down_payment', $num($holding->mortgage_down_payment)) }}" inputmode="decimal">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage / debt</label>
+                    <input type="number" step="any" min="0" name="debt" class="field"
+                           value="{{ old('debt', $num($holding->debt)) }}" inputmode="decimal">
+                </div>
+            </div>
+            <p class="text-xs text-muted">
+                Debt is shown under Liabilities and subtracted from net worth. Invested equity is just the down payment
+                (leave it blank if you paid the full price in cash) — return is measured against that equity.
+            </p>
             <div>
-                <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage / debt</label>
-                <input type="number" step="any" min="0" name="debt" class="field"
-                       value="{{ old('debt', $num($holding->debt)) }}" inputmode="decimal">
-                <p class="mt-1 text-xs text-muted">Shown under Liabilities and subtracted from net worth. Return is measured purchase → current value.</p>
+                <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share (%)</label>
+                <input type="number" step="any" min="0" max="100" name="ownership_pct" class="field"
+                       value="{{ old('ownership_pct', $num($holding->ownership_pct)) }}" inputmode="decimal" placeholder="100">
+                <p class="mt-1 text-xs text-muted">
+                    All figures above are for the whole property. If you only own part of it (e.g. split with a
+                    co-owner), every calculation — value, debt, equity, return — is scaled to your share.
+                </p>
             </div>
             <input type="hidden" name="quantity" value="{{ $num($holding->quantity) ?: 1 }}">
 

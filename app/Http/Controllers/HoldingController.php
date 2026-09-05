@@ -53,6 +53,8 @@ class HoldingController extends Controller
                 'cost_currency' => $data['cost_currency'] ?: $request->user()->currency(),
                 'manual_value' => $isManual ? $data['manual_price'] : null,
                 'debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : 0,
+                'mortgage_down_payment' => $data['type'] === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
+                'ownership_pct' => $data['type'] === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
                 'notes' => $data['notes'] ?? null,
             ],
         );
@@ -94,6 +96,8 @@ class HoldingController extends Controller
             'cost_currency' => ['nullable', 'string', 'size:3'],
             'manual_value' => [$isManual ? 'required' : 'nullable', 'numeric', 'gte:0'],
             'debt' => ['nullable', 'numeric', 'gte:0'],
+            'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
+            'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -107,6 +111,8 @@ class HoldingController extends Controller
             'cost_currency' => strtoupper($data['cost_currency'] ?? '') ?: $holding->costCurrency(),
             'manual_value' => $isManual ? $data['manual_value'] : null,
             'debt' => $holding->asset->type === 'realestate' ? ($data['debt'] ?? 0) : 0,
+            'mortgage_down_payment' => $holding->asset->type === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
+            'ownership_pct' => $holding->asset->type === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
             'notes' => $data['notes'] ?? null,
         ]);
 
@@ -144,6 +150,8 @@ class HoldingController extends Controller
             'cost_currency' => ['nullable', 'string', 'size:3'],
             'manual_price' => ['nullable', 'numeric', 'gte:0', Rule::requiredIf(fn () => in_array($request->input('type'), $manualTypes, true))],
             'debt' => ['nullable', 'numeric', 'gte:0'],
+            'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
+            'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 

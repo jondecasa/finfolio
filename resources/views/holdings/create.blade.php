@@ -22,7 +22,7 @@
               category: @js($prefillType),
               nonSearchable: @js($nonSearchable),
               asset: @js($hasPrefill ? $prefill : null),
-              manual: { name: '', symbol: '', currency: @js($baseCurrency), price: '', purchase: '', debt: '' },
+              manual: { name: '', symbol: '', currency: @js($baseCurrency), price: '', purchase: '', debt: '', downPayment: '', ownershipPct: '100' },
               avgCost: '{{ old('average_cost') }}',
               costCcy: @js(old('cost_currency', $baseCurrency)),
               qty: {{ old('quantity', 1) }},
@@ -53,6 +53,10 @@
               get outCurrency() { return this.searchable ? (this.asset && this.asset.currency || '') : this.manual.currency; },
               get outAvgCost() { return this.isRealEstate ? this.manual.purchase : (this.isCash ? '' : this.avgCost); },
               get outDebt() { return this.isRealEstate ? (this.manual.debt || '') : ''; },
+              get outDownPayment() { return this.isRealEstate ? (this.manual.downPayment || '') : ''; },
+              get outOwnershipPct() { return this.isRealEstate ? (this.manual.ownershipPct || '100') : ''; },
+              get ownershipFraction() { return this.isRealEstate ? ((Number(this.manual.ownershipPct) || 100) / 100) : 1; },
+              get equityInvested() { return this.isRealEstate ? (this.manual.downPayment !== '' ? (Number(this.manual.downPayment)||0) : (Number(this.manual.purchase)||0)) * this.ownershipFraction : 0; },
               setCategory(c) {
                   this.category = c;
                   this.asset = null; this.query = ''; this.results = []; this.open = false;
@@ -171,14 +175,27 @@
                             <input type="number" step="any" min="0" class="field" x-model="manual.price" inputmode="decimal" placeholder="0.00">
                         </div>
                     </div>
-                    <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage / debt <span class="text-muted/60">(optional)</span></label>
-                        <input type="number" step="any" min="0" class="field" x-model="manual.debt" inputmode="decimal" placeholder="0.00">
-                        <p class="mt-1 text-xs text-muted">
-                            Net worth counts <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency((Number(manual.price)||0) - (Number(manual.debt)||0), manual.currency)"></span>;
-                            the debt shows under Liabilities. Return is measured purchase → current value.
-                        </p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage down payment <span class="text-muted/60">(optional)</span></label>
+                            <input type="number" step="any" min="0" class="field" x-model="manual.downPayment" inputmode="decimal" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage / debt <span class="text-muted/60">(optional)</span></label>
+                            <input type="number" step="any" min="0" class="field" x-model="manual.debt" inputmode="decimal" placeholder="0.00">
+                        </div>
                     </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share <span class="text-muted/60">(optional)</span></label>
+                        <input type="number" step="any" min="0" max="100" class="field" x-model="manual.ownershipPct" inputmode="decimal" placeholder="100">
+                        <p class="mt-1 text-xs text-muted">All figures above are for the whole property. If you only own part of it (e.g. split with a co-owner), everything below is scaled to your share.</p>
+                    </div>
+                    <p class="text-xs text-muted">
+                        Net worth counts <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency(((Number(manual.price)||0) - (Number(manual.debt)||0)) * ownershipFraction, manual.currency)"></span>;
+                        the debt shows under Liabilities (also scaled to your share). Invested equity is
+                        <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency(equityInvested, manual.currency)"></span>
+                        (just the down payment — the rest was financed) — leave it blank if you paid the full price in cash.
+                    </p>
                 </div>
             </template>
 
@@ -218,6 +235,8 @@
         <input type="hidden" name="average_cost" :value="outAvgCost">
         <input type="hidden" name="cost_currency" :value="costCcy">
         <input type="hidden" name="debt" :value="outDebt">
+        <input type="hidden" name="mortgage_down_payment" :value="outDownPayment">
+        <input type="hidden" name="ownership_pct" :value="outOwnershipPct">
 
         <div>
             <label class="mb-1.5 block text-sm font-semibold text-muted">Note (optional)</label>

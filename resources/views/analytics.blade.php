@@ -74,10 +74,18 @@
         </div>
 
         {{-- Headline stats --}}
-        <div class="app-pad mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="app-pad mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
             <div class="card-tight">
                 <div class="text-xs text-muted">Net value</div>
                 <x-money :amount="$summary['net_value']" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
+            </div>
+            <div class="card-tight">
+                <div class="text-xs text-muted">Equity invested</div>
+                <x-money :amount="$summary['equity_invested']" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
+            </div>
+            <div class="card-tight">
+                <div class="text-xs text-muted">Positions</div>
+                <span class="mt-1 block text-xl font-bold">{{ $summary['positions_count'] }}</span>
             </div>
             <div class="card-tight">
                 <div class="text-xs text-muted">Liabilities</div>
