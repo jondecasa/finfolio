@@ -169,7 +169,7 @@
 
         <div>
             <label class="mb-1.5 block text-sm font-semibold text-muted">Note <span class="text-muted/60">(optional)</span></label>
-            <input type="text" name="note" class="field" maxlength="255" value="{{ old('note', $plan->note ?? '') }}">
+            <textarea name="note" class="field resize-y" rows="3" maxlength="255">{{ old('note', $plan->note ?? '') }}</textarea>
         </div>
 
         @if ($isEdit)

@@ -184,7 +184,7 @@
 
         <div>
             <label class="mb-1.5 block text-sm font-semibold text-muted">Note</label>
-            <input type="text" name="notes" class="field" value="{{ old('notes', $holding->notes) }}" maxlength="255">
+            <textarea name="notes" class="field resize-y" rows="3" maxlength="255">{{ old('notes', $holding->notes) }}</textarea>
         </div>
 
         <button class="btn-primary w-full">Save changes</button>
