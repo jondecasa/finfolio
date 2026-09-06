@@ -198,6 +198,27 @@ class PortfolioTest extends TestCase
         $this->actingAs($user)->get('/wealth')->assertRedirect('/positions');
     }
 
+    public function test_positions_screen_shows_roe_only_for_real_estate(): void
+    {
+        $user = $this->makePortfolio(); // has a BTC holding, not real estate
+        $account = $user->accounts()->first();
+
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 100, 'manual_value' => 150,
+            'debt' => 40, 'mortgage_down_payment' => 10,
+        ]);
+
+        // Net value 150 − 40 = 110; equity 10 → ROE = (110−10)/10 = 1,000%.
+        $response = $this->actingAs($user)->get('/positions')->assertOk();
+        $response->assertSee('ROE');
+        $response->assertSee('1,000.00%');
+
+        // Only the one real-estate holding gets a ROE line (BTC/ETH don't).
+        $this->assertSame(1, substr_count($response->getContent(), 'ROE'));
+    }
+
     public function test_series_endpoint_returns_points(): void
     {
         $user = $this->makePortfolio();

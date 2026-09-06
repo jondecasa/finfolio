@@ -74,6 +74,11 @@
                         @if ($p['gain_pct'] !== null)
                             <x-change :pct="$p['gain_pct']" class="text-xs" />
                         @endif
+                        @if ($h->asset->type === 'realestate' && $p['equity_gain_pct'] !== null)
+                            <div class="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted">
+                                ROE <x-change :pct="$p['equity_gain_pct']" :hidden="$hidden" :arrow="false" class="text-[11px]" />
+                            </div>
+                        @endif
                     </div>
                 </a>
             @empty
