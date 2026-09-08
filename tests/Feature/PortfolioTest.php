@@ -376,4 +376,58 @@ class PortfolioTest extends TestCase
         $this->assertDatabaseHas('assets', ['symbol' => 'SOL', 'type' => 'crypto']);
         $this->assertDatabaseHas('holdings', ['quantity' => 10]);
     }
+
+    public function test_notes_are_not_truncated_past_the_old_255_char_limit(): void
+    {
+        $user = $this->makePortfolio();
+        $account = $user->accounts()->first();
+        $btc = $account->holdings()->first();
+
+        $longNote = str_repeat('a', 1000);
+
+        $this->actingAs($user)->put(route('holdings.update', $btc), [
+            'account_id' => $account->id,
+            'quantity' => $btc->quantity,
+            'average_cost' => $btc->average_cost,
+            'notes' => $longNote,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('holdings', ['id' => $btc->id, 'notes' => $longNote]);
+    }
+
+    public function test_updating_a_position_redirects_back_to_where_it_was_opened_from(): void
+    {
+        $user = $this->makePortfolio();
+        $account = $user->accounts()->first();
+        $btc = $account->holdings()->first();
+
+        // Simulate arriving at the edit page from Positions.
+        $this->actingAs($user)->get('/positions');
+        $this->actingAs($user)->get(route('holdings.edit', $btc));
+
+        $response = $this->actingAs($user)->put(route('holdings.update', $btc), [
+            'account_id' => $account->id,
+            'quantity' => $btc->quantity,
+            'average_cost' => $btc->average_cost,
+            'redirect_to' => url('/positions'),
+        ]);
+
+        $response->assertRedirect('/positions');
+    }
+
+    public function test_update_ignores_a_redirect_to_an_external_host(): void
+    {
+        $user = $this->makePortfolio();
+        $account = $user->accounts()->first();
+        $btc = $account->holdings()->first();
+
+        $response = $this->actingAs($user)->put(route('holdings.update', $btc), [
+            'account_id' => $account->id,
+            'quantity' => $btc->quantity,
+            'average_cost' => $btc->average_cost,
+            'redirect_to' => 'https://evil.example.com/phish',
+        ]);
+
+        $response->assertRedirect(route('analytics'));
+    }
 }

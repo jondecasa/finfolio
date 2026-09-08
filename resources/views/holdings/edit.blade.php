@@ -9,7 +9,7 @@
         ->map(fn ($c) => strtoupper($c))->filter()->unique()->values();
 @endphp
 
-<x-layouts.mobile heading="Edit position" title="Finfolio · Edit position" :back="route('analytics')">
+<x-layouts.mobile heading="Edit position" title="Finfolio · Edit position" :back="$back">
   <div class="lg:mx-auto lg:max-w-xl">
     <div class="app-pad">
         <{{ $source ? 'a' : 'div' }}
@@ -56,6 +56,7 @@
     <form method="POST" action="{{ route('holdings.update', $holding) }}" class="app-pad mt-5 space-y-5">
         @csrf
         @method('PUT')
+        <input type="hidden" name="redirect_to" value="{{ $back }}">
 
         <div>
             <label class="mb-1.5 block text-sm font-semibold text-muted">Account</label>
@@ -184,7 +185,7 @@
 
         <div>
             <label class="mb-1.5 block text-sm font-semibold text-muted">Note</label>
-            <textarea name="notes" class="field resize-y" rows="3" maxlength="255">{{ old('notes', $holding->notes) }}</textarea>
+            <textarea name="notes" class="field resize-y" rows="3" maxlength="5000">{{ old('notes', $holding->notes) }}</textarea>
         </div>
 
         <button class="btn-primary w-full">Save changes</button>

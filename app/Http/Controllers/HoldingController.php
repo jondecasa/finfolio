@@ -79,6 +79,10 @@ class HoldingController extends Controller
         return view('holdings.edit', [
             'holding' => $holding,
             'accounts' => $request->user()->accounts()->get(),
+            // Where to return to on cancel/save — wherever the user came from
+            // (Positions, Analytics, Home…), captured before it's overwritten
+            // by this page's own load.
+            'back' => url()->previous(route('analytics')),
         ]);
     }
 
@@ -98,7 +102,8 @@ class HoldingController extends Controller
             'debt' => ['nullable', 'numeric', 'gte:0'],
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
-            'notes' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+            'redirect_to' => ['nullable', 'string'],
         ]);
 
         $holding->update([
@@ -118,7 +123,8 @@ class HoldingController extends Controller
 
         $this->portfolio->snapshot($request->user());
 
-        return redirect()->route('analytics')->with('status', "{$holding->asset->symbol} updated.");
+        return $this->safeRedirect($request->input('redirect_to'), 'analytics')
+            ->with('status', "{$holding->asset->symbol} updated.");
     }
 
     public function destroy(Request $request, Holding $holding)
@@ -152,7 +158,7 @@ class HoldingController extends Controller
             'debt' => ['nullable', 'numeric', 'gte:0'],
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
-            'notes' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $data['name'] = $data['name'] ?: strtoupper($data['symbol']);
@@ -172,5 +178,15 @@ class HoldingController extends Controller
     protected function authorizeHolding(Holding $holding): void
     {
         abort_unless($holding->account->user_id === request()->user()->id, 403);
+    }
+
+    /** Redirect to $url if it's one of our own pages, else to the named fallback route. */
+    protected function safeRedirect(?string $url, string $fallbackRoute)
+    {
+        if ($url && str_starts_with($url, url('/'))) {
+            return redirect()->to($url);
+        }
+
+        return redirect()->route($fallbackRoute);
     }
 }

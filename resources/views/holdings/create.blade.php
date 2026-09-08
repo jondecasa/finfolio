@@ -240,7 +240,7 @@
 
         <div>
             <label class="mb-1.5 block text-sm font-semibold text-muted">Note (optional)</label>
-            <textarea name="notes" class="field resize-y" rows="3" maxlength="255">{{ old('notes') }}</textarea>
+            <textarea name="notes" class="field resize-y" rows="3" maxlength="5000">{{ old('notes') }}</textarea>
         </div>
 
         {{-- Hidden payload --}}
