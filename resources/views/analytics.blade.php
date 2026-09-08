@@ -25,8 +25,18 @@
         return $head->values();
     };
 
-    $positionSegments = $buildSegments($positions, 'symbol');
+    $positionSegments = $buildSegments($positions, 'name');
     $typeSegments = $buildSegments($allocation['by_type'], 'label');
+
+    // Second ring: money actually invested (equity put in — real estate's down
+    // payment, everything else's cost basis; cash excluded), grouped by type,
+    // as opposed to the hero ring above which is weighted by current value.
+    $investedByType = $allocation['by_type']
+        ->filter(fn ($t) => $t['invested'] > 0)
+        ->map(fn ($t) => ['label' => $t['label'], 'value' => $t['invested'], 'weight' => $t['invested_weight']])
+        ->sortByDesc('value')
+        ->values();
+    $investedSegments = $buildSegments($investedByType, 'label');
 @endphp
 
 <x-layouts.mobile heading="Analytics" title="Finfolio · Analytics">
@@ -143,6 +153,64 @@
                 </div>
             </div>
         </div>
+
+        {{-- Invested money (equity put in, by type) — a separate view from
+             the hero ring, which is weighted by current value/net worth. --}}
+        @if ($allocation['invested_total'] > 0)
+            <div class="app-pad mt-4"
+                 x-data="{
+                     chart: null,
+                     hovered: null,
+                     pinned: null,
+                     segments: @js($investedSegments),
+                     currency: @js($currency),
+                     get active() { return this.hovered || this.pinned; },
+                     get centerValue() { return this.active ? window.Finfolio.formatCurrency(this.active.value, this.currency) : ''; },
+                     get centerMeta() { return this.active ? this.active.label + ' · ' + this.active.weight.toFixed(1) + '%' : ''; },
+                     select(seg) { this.hovered = seg; },
+                     pin(seg) { this.pinned = (seg && this.pinned && this.pinned.label === seg.label) ? null : seg; },
+                     init() {
+                         this.chart = window.Finfolio.ringChart(this.$refs.ring2, {
+                             segments: this.segments,
+                             onHover: (seg) => this.select(seg),
+                             onClick: (seg) => this.pin(seg),
+                         });
+                     },
+                 }">
+                <div class="card">
+                    <h2 class="text-sm font-semibold text-muted">Invested money <span class="text-muted/60">(by type)</span></h2>
+                    <p class="mt-0.5 text-xs text-muted/70">What you actually put in — not current value or net worth.</p>
+
+                    <div class="relative mx-auto mt-2" style="width: 180px; height: 180px;">
+                        <canvas x-ref="ring2"></canvas>
+                        <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+                            <div :class="{ 'hidden': !active }" class="transition-opacity duration-150">
+                                <span class="block text-xl font-bold leading-tight" x-text="centerValue"></span>
+                                <span class="mt-1 block max-w-full truncate text-xs text-muted" x-text="centerMeta"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 flex items-center justify-between border-t border-white/5 pt-4 text-sm">
+                        <span class="text-muted">Total invested</span>
+                        <x-money :amount="$allocation['invested_total']" :currency="$currency" :hidden="$hidden" class="font-semibold" />
+                    </div>
+
+                    <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                        <template x-for="s in segments" :key="s.label">
+                            <button type="button"
+                                    @mouseenter="select(s)" @mouseleave="select(null)" @click="pin(s)"
+                                    class="inline-flex items-center gap-1.5 rounded-full px-1 text-xs transition"
+                                    :class="active && active.label === s.label ? 'bg-white/10' : ''">
+                                <span class="h-2.5 w-2.5 rounded-full" :style="`background: ${s.color}`"></span>
+                                <span class="font-semibold" x-text="s.label"></span>
+                                <span class="text-muted" x-text="s.weight.toFixed(1) + '%'"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- All positions --}}
         <div class="app-pad mt-6 space-y-2" x-show="tab === 'positions'">

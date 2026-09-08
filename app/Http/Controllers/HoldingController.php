@@ -55,6 +55,7 @@ class HoldingController extends Controller
                 'debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : 0,
                 'mortgage_down_payment' => $data['type'] === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
                 'ownership_pct' => $data['type'] === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
+                'monthly_rent' => $data['type'] === 'realestate' ? ($data['monthly_rent'] ?? null) : null,
                 'notes' => $data['notes'] ?? null,
             ],
         );
@@ -91,12 +92,15 @@ class HoldingController extends Controller
         $this->authorizeHolding($holding);
 
         $isManual = in_array($holding->asset->type, Asset::MANUAL_TYPES, true);
-        $isNameable = in_array($holding->asset->type, Asset::NAMEABLE_MANUAL_TYPES, true);
+        $isRealEstate = $holding->asset->type === 'realestate';
 
         $data = $request->validate([
             'account_id' => ['required', Rule::exists('accounts', 'id')->where('user_id', $request->user()->id)],
             'category' => ['nullable', Rule::in(Holding::RECATEGORISABLE)],
-            'name' => [$isNameable ? 'required' : 'nullable', 'string', 'max:120'],
+            // Editable for every type — priced assets occasionally only have a
+            // ticker/ISIN from the provider (no proper long name), so letting
+            // the user fix it here beats showing that forever.
+            'name' => ['required', 'string', 'max:120'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'average_cost' => ['nullable', 'numeric', 'gte:0'],
             'cost_currency' => ['nullable', 'string', 'size:3'],
@@ -104,6 +108,7 @@ class HoldingController extends Controller
             'debt' => ['nullable', 'numeric', 'gte:0'],
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
+            'monthly_rent' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'redirect_to' => ['nullable', 'string'],
         ]);
@@ -117,13 +122,14 @@ class HoldingController extends Controller
             'average_cost' => $data['average_cost'] ?? null,
             'cost_currency' => strtoupper($data['cost_currency'] ?? '') ?: $holding->costCurrency(),
             'manual_value' => $isManual ? $data['manual_value'] : null,
-            'debt' => $holding->asset->type === 'realestate' ? ($data['debt'] ?? 0) : 0,
-            'mortgage_down_payment' => $holding->asset->type === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
-            'ownership_pct' => $holding->asset->type === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
+            'debt' => $isRealEstate ? ($data['debt'] ?? 0) : 0,
+            'mortgage_down_payment' => $isRealEstate ? ($data['mortgage_down_payment'] ?? null) : null,
+            'ownership_pct' => $isRealEstate ? ($data['ownership_pct'] ?? 100) : 100,
+            'monthly_rent' => $isRealEstate ? ($data['monthly_rent'] ?? null) : null,
             'notes' => $data['notes'] ?? null,
         ]);
 
-        if ($isNameable) {
+        if ($data['name'] !== $holding->asset->name) {
             $holding->asset->update(['name' => $data['name']]);
         }
 
@@ -164,6 +170,7 @@ class HoldingController extends Controller
             'debt' => ['nullable', 'numeric', 'gte:0'],
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
+            'monthly_rent' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 

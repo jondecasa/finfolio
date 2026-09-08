@@ -90,6 +90,26 @@ class PortfolioService
         return $equity > 0 ? $gain / $equity * 100 : null;
     }
 
+    /**
+     * ROCE %: price appreciation plus a year of rent, against the full
+     * purchase price — the property's own unlevered return, financing aside.
+     * Unlike ROE, rent DOES count as profit here (it's cash actually
+     * received, not something paid for out of the owner's own pocket the way
+     * mortgage paydown is).
+     */
+    public function holdingRocePct(Holding $holding, string $base): ?float
+    {
+        $capital = $this->holdingInvested($holding, $base);
+        if ($capital <= 0) {
+            return null;
+        }
+
+        $priceGain = $this->holdingGross($holding, $base) - $capital;
+        $rent = $this->fx->convert($holding->annualRentalIncome(), $holding->costCurrency(), $base);
+
+        return ($priceGain + $rent) / $capital * 100;
+    }
+
     /** Net value of the holding at the previous market close, in base currency. */
     public function holdingPreviousValue(Holding $holding, string $base): float
     {
@@ -224,10 +244,16 @@ class PortfolioService
         $holdings = $this->holdings($user)
             ->when($accountId, fn ($c) => $c->where('account_id', $accountId));
         $total = 0.0;
+        $investedTotal = 0.0;
 
-        $positions = $holdings->map(function (Holding $holding) use ($base, &$total) {
+        $positions = $holdings->map(function (Holding $holding) use ($base, &$total, &$investedTotal) {
             $value = $this->holdingValue($holding, $base);
             $total += $value;
+
+            // Cash isn't "invested" in the cost-basis sense — excluded so the
+            // invested-money view reflects money actually put to work.
+            $invested = $holding->asset->type === 'cash' ? 0.0 : $this->holdingEquityInvested($holding, $base);
+            $investedTotal += $invested;
 
             return [
                 'holding' => $holding,
@@ -238,26 +264,31 @@ class PortfolioService
                 'type' => $holding->displayType(),
                 'logo_url' => $holding->asset->logo_url,
                 'value' => $value,
+                'invested' => $invested,
                 'quantity' => (float) $holding->quantity,
                 'day_change_pct' => $holding->asset->dayChangePct(),
                 'gain_pct' => $this->holdingGainPct($holding, $base),
             ];
         })->values();
 
-        $positions = $positions->map(function ($p) use ($total) {
+        $positions = $positions->map(function ($p) use ($total, $investedTotal) {
             $p['weight'] = $total > 0 ? $p['value'] / $total * 100 : 0;
+            $p['invested_weight'] = $investedTotal > 0 ? $p['invested'] / $investedTotal * 100 : 0;
 
             return $p;
         })->sortByDesc('value')->values();
 
-        $byType = $positions->groupBy('type')->map(function ($group, $type) use ($total) {
+        $byType = $positions->groupBy('type')->map(function ($group, $type) use ($total, $investedTotal) {
             $sum = $group->sum('value');
+            $investedSum = $group->sum('invested');
 
             return [
                 'key' => $type,
                 'label' => config("finfolio.categories.$type.label", ucfirst($type)),
                 'value' => $sum,
                 'weight' => $total > 0 ? $sum / $total * 100 : 0,
+                'invested' => $investedSum,
+                'invested_weight' => $investedTotal > 0 ? $investedSum / $investedTotal * 100 : 0,
                 'count' => $group->count(),
             ];
         })->sortByDesc('value')->values();
@@ -265,6 +296,7 @@ class PortfolioService
         return [
             'currency' => $base,
             'total' => $total,
+            'invested_total' => $investedTotal,
             'positions' => $positions,
             'by_type' => $byType,
         ];

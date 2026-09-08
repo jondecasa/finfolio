@@ -79,12 +79,17 @@
             </div>
         @endif
 
-        @if (in_array($asset->type, \App\Models\Asset::NAMEABLE_MANUAL_TYPES))
-            <div>
-                <label class="mb-1.5 block text-sm font-semibold text-muted">Name</label>
-                <input type="text" name="name" class="field" value="{{ old('name', $asset->name) }}" maxlength="120" required>
-            </div>
-        @endif
+        <div>
+            <label class="mb-1.5 block text-sm font-semibold text-muted">Name</label>
+            <input type="text" name="name" class="field" value="{{ old('name', $asset->name) }}" maxlength="120" required>
+            @unless (in_array($asset->type, \App\Models\Asset::NAMEABLE_MANUAL_TYPES))
+                <p class="mt-1 text-xs text-muted">
+                    Usually filled in automatically from {{ $source['name'] ?? 'the price provider' }}. Fix it here if it's
+                    showing a ticker/ISIN instead of the fund's real name — this updates every position using
+                    {{ $asset->symbol }}.
+                </p>
+            @endunless
+        </div>
 
         @if ($asset->type === 'realestate')
             <div class="grid grid-cols-2 gap-3">
@@ -111,16 +116,27 @@
                            value="{{ old('debt', $num($holding->debt)) }}" inputmode="decimal">
                 </div>
             </div>
-            <p class="text-xs text-muted">
-                Debt is shown under Liabilities and subtracted from net worth. Invested equity is just the down payment
-                (leave it blank if you paid the full price in cash). Return on that equity is measured as price
-                appreciation only — paying down the mortgage isn't counted as profit, since it comes out of your own
-                pocket rather than the property's own income.
-            </p>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share (%)</label>
+                    <input type="number" step="any" min="0" max="100" name="ownership_pct" class="field"
+                           value="{{ old('ownership_pct', $num($holding->ownership_pct)) }}" inputmode="decimal" placeholder="100">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Monthly rent <span class="text-muted/60">(if rented out)</span></label>
+                    <input type="number" step="any" min="0" name="monthly_rent" class="field"
+                           value="{{ old('monthly_rent', $num($holding->monthly_rent)) }}" inputmode="decimal" placeholder="0.00">
+                </div>
+            </div>
             <div>
-                <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share (%)</label>
-                <input type="number" step="any" min="0" max="100" name="ownership_pct" class="field"
-                       value="{{ old('ownership_pct', $num($holding->ownership_pct)) }}" inputmode="decimal" placeholder="100">
+                <p class="text-xs text-muted">
+                    Debt is shown under Liabilities and subtracted from net worth. Invested equity is just the down
+                    payment (leave it blank if you paid the full price in cash). Return on that equity (ROE) is
+                    measured as price appreciation only — paying down the mortgage isn't counted as profit, since it
+                    comes out of your own pocket rather than the property's own income. If it's rented out, ROCE
+                    additionally counts a year of rent against the full purchase price — the property's own return,
+                    financing aside.
+                </p>
                 <p class="mt-1 text-xs text-muted">
                     All figures above are for the whole property. If you only own part of it (e.g. split with a
                     co-owner), every calculation — value, debt, equity, return — is scaled to your share.

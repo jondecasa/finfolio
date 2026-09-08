@@ -37,6 +37,7 @@ class PositionsController extends Controller
                 'gain_pct' => $this->portfolio->holdingGainPct($h, $base),
                 'equity_invested' => $equityInvested,
                 'equity_gain_pct' => $this->portfolio->holdingEquityGainPct($h, $base),
+                'roce_pct' => $this->portfolio->holdingRocePct($h, $base),
                 'day_change_pct' => $h->asset->dayChangePct(),
             ];
         })->sortByDesc('value')->values();

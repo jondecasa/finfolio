@@ -26,6 +26,7 @@ class Holding extends Model
         'debt',
         'mortgage_down_payment',
         'ownership_pct',
+        'monthly_rent',
         'notes',
     ];
 
@@ -38,6 +39,7 @@ class Holding extends Model
             'debt' => 'float',
             'mortgage_down_payment' => 'float',
             'ownership_pct' => 'float',
+            'monthly_rent' => 'float',
         ];
     }
 
@@ -182,5 +184,38 @@ class Holding extends Model
         $equity = $this->investedEquity();
 
         return $equity > 0 ? $this->equityGain() / $equity * 100 : null;
+    }
+
+    /** Whether this property is currently rented out (a non-zero monthly rent is set). */
+    public function isRented(): bool
+    {
+        return (float) ($this->monthly_rent ?? 0) > 0;
+    }
+
+    /** Rent collected over a year, in costCurrency(), scaled to the user's ownership share. */
+    public function annualRentalIncome(): float
+    {
+        return (float) ($this->monthly_rent ?? 0) * 12 * $this->ownershipFraction();
+    }
+
+    /**
+     * ROCE ("Return on Capital Employed") profit: price appreciation PLUS a
+     * year of rental income, measured against the full purchase price — i.e.
+     * the property's own unlevered return, financing aside. This is the one
+     * place rent is allowed to count as profit, since — unlike mortgage
+     * paydown — it's real cash received, not a cost paid out of pocket.
+     * Complements equityGain()/ROE, which measures the levered return on just
+     * the cash actually put in (the down payment).
+     */
+    public function roceGain(): float
+    {
+        return $this->unrealizedGain() + $this->annualRentalIncome();
+    }
+
+    public function rocePct(): ?float
+    {
+        $capital = $this->costBasis();
+
+        return $capital > 0 ? $this->roceGain() / $capital * 100 : null;
     }
 }

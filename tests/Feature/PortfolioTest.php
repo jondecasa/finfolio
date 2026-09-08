@@ -325,6 +325,115 @@ class PortfolioTest extends TestCase
         $this->assertEqualsWithDelta(20, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
     }
 
+    public function test_rented_real_estate_roce_counts_rent_but_roe_does_not(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 1000, 'manual_value' => 1200,
+            'mortgage_down_payment' => 200, 'monthly_rent' => 50,
+        ]);
+
+        $portfolio = app(PortfolioService::class);
+
+        // ROCE: plusvalía (200) + a year of rent (50*12=600) = 800, over the
+        // full purchase price (1000) = 80%. Unlevered — financing aside.
+        $this->assertEqualsWithDelta(600, $holding->annualRentalIncome(), 0.01);
+        $this->assertEqualsWithDelta(80, $portfolio->holdingRocePct($holding, 'EUR'), 0.01);
+        $this->assertTrue($holding->isRented());
+
+        // ROE is unaffected by rent — still just plusvalía (200) over the
+        // €200 down payment = 100%, same as before rent was ever added.
+        $this->assertEqualsWithDelta(100, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
+
+        // Not rented → no ROCE line, ROCE still computable but isRented() is false.
+        $holding->monthly_rent = null;
+        $this->assertFalse($holding->isRented());
+        $this->assertEqualsWithDelta(0, $holding->annualRentalIncome(), 0.01);
+    }
+
+    public function test_positions_screen_shows_roce_only_when_rented(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 1000, 'manual_value' => 1200,
+            'mortgage_down_payment' => 200, 'monthly_rent' => 50,
+        ]);
+
+        $this->actingAs($user)->get('/positions')
+            ->assertOk()
+            ->assertSee('ROE')
+            ->assertSee('ROCE')
+            ->assertSee('80.00%'); // ROCE
+    }
+
+    public function test_allocation_has_an_invested_by_type_breakdown_excluding_cash(): void
+    {
+        $user = $this->makePortfolio(); // BTC 1@60000 (cost 40000), ETH 5@3000 (cost 2000/u)
+        $account = $user->accounts()->first();
+        $cash = Asset::create(['type' => 'cash', 'symbol' => 'CASH-EUR', 'name' => 'EUR cash', 'currency' => 'EUR']);
+        Holding::create(['account_id' => $account->id, 'asset_id' => $cash->id, 'quantity' => 1, 'manual_value' => 5000]);
+
+        $allocation = app(PortfolioService::class)->allocation($user);
+
+        // Invested total excludes cash (cost basis 0) — only the crypto cost bases count.
+        // BTC: 1*40000=40000 USD; ETH: 5*2000=10000 USD; *0.9 FX => 45000 EUR.
+        $this->assertEqualsWithDelta(45000, $allocation['invested_total'], 0.01);
+
+        $crypto = collect($allocation['by_type'])->firstWhere('key', 'crypto');
+        $this->assertEqualsWithDelta(45000, $crypto['invested'], 0.01);
+        $this->assertEqualsWithDelta(100, $crypto['invested_weight'], 0.01);
+
+        $cashRow = collect($allocation['positions'])->firstWhere('symbol', 'CASH-EUR');
+        $this->assertEqualsWithDelta(0, $cashRow['invested'], 0.01);
+    }
+
+    public function test_analytics_chart_shows_asset_name_not_symbol(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        // A fund whose provider only ever gave us an ISIN — the name is stuck
+        // as the ISIN too, but the chart should still key off whatever `name`
+        // holds today, not the raw symbol (this used to be the same bug that
+        // made a renamed real-estate position keep showing its old symbol).
+        $fund = Asset::create([
+            'type' => 'index', 'symbol' => 'IE00B4L5Y983', 'name' => 'iShares Core MSCI World', 'currency' => 'EUR',
+            'current_price' => 100, 'price_updated_at' => now(),
+        ]);
+        Holding::create(['account_id' => $account->id, 'asset_id' => $fund->id, 'quantity' => 10, 'average_cost' => 90]);
+
+        $response = $this->actingAs($user)->get('/analytics')->assertOk();
+        $response->assertSee('iShares Core MSCI World');
+        // The symbol shouldn't appear as a chart *label* — only as embedded
+        // asset data elsewhere (logo-bubble fallback initials use substr(3)).
+        $this->assertStringNotContainsString('"label":"IE00B4L5Y983"', $response->getContent());
+    }
+
+    public function test_user_can_rename_a_priced_asset_stuck_showing_its_isin(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $fund = Asset::create([
+            'type' => 'index', 'symbol' => 'IE00B4L5Y983', 'name' => 'IE00B4L5Y983', 'currency' => 'EUR',
+            'current_price' => 100, 'price_updated_at' => now(),
+        ]);
+        $holding = Holding::create(['account_id' => $account->id, 'asset_id' => $fund->id, 'quantity' => 10, 'average_cost' => 90]);
+
+        $this->actingAs($user)->put(route('holdings.update', $holding), [
+            'account_id' => $account->id,
+            'name' => 'iShares Core MSCI World',
+            'quantity' => 10,
+            'average_cost' => 90,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('assets', ['id' => $fund->id, 'name' => 'iShares Core MSCI World']);
+    }
+
     public function test_real_estate_ownership_share_scales_every_figure(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);
@@ -459,6 +568,7 @@ class PortfolioTest extends TestCase
 
         $this->actingAs($user)->put(route('holdings.update', $btc), [
             'account_id' => $account->id,
+            'name' => $btc->asset->name,
             'quantity' => $btc->quantity,
             'average_cost' => $btc->average_cost,
             'notes' => $longNote,
@@ -479,6 +589,7 @@ class PortfolioTest extends TestCase
 
         $response = $this->actingAs($user)->put(route('holdings.update', $btc), [
             'account_id' => $account->id,
+            'name' => $btc->asset->name,
             'quantity' => $btc->quantity,
             'average_cost' => $btc->average_cost,
             'redirect_to' => url('/positions'),
@@ -495,6 +606,7 @@ class PortfolioTest extends TestCase
 
         $response = $this->actingAs($user)->put(route('holdings.update', $btc), [
             'account_id' => $account->id,
+            'name' => $btc->asset->name,
             'quantity' => $btc->quantity,
             'average_cost' => $btc->average_cost,
             'redirect_to' => 'https://evil.example.com/phish',

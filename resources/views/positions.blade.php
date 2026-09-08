@@ -79,6 +79,11 @@
                                 ROE <x-change :pct="$p['equity_gain_pct']" :hidden="$hidden" :arrow="false" class="text-[11px]" />
                             </div>
                         @endif
+                        @if ($h->isRented() && $p['roce_pct'] !== null)
+                            <div class="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted">
+                                ROCE <x-change :pct="$p['roce_pct']" :hidden="$hidden" :arrow="false" class="text-[11px]" />
+                            </div>
+                        @endif
                     </div>
                 </a>
             @empty
