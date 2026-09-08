@@ -79,6 +79,13 @@
             </div>
         @endif
 
+        @if (in_array($asset->type, ['realestate', 'other']))
+            <div>
+                <label class="mb-1.5 block text-sm font-semibold text-muted">Name</label>
+                <input type="text" name="name" class="field" value="{{ old('name', $asset->name) }}" maxlength="120" required>
+            </div>
+        @endif
+
         @if ($asset->type === 'realestate')
             <div class="grid grid-cols-2 gap-3">
                 <div>

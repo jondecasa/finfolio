@@ -91,10 +91,12 @@ class HoldingController extends Controller
         $this->authorizeHolding($holding);
 
         $isManual = in_array($holding->asset->type, Asset::MANUAL_TYPES, true);
+        $isNameable = in_array($holding->asset->type, ['realestate', 'other'], true);
 
         $data = $request->validate([
             'account_id' => ['required', Rule::exists('accounts', 'id')->where('user_id', $request->user()->id)],
             'category' => ['nullable', Rule::in(Holding::RECATEGORISABLE)],
+            'name' => [$isNameable ? 'required' : 'nullable', 'string', 'max:120'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'average_cost' => ['nullable', 'numeric', 'gte:0'],
             'cost_currency' => ['nullable', 'string', 'size:3'],
@@ -120,6 +122,10 @@ class HoldingController extends Controller
             'ownership_pct' => $holding->asset->type === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
             'notes' => $data['notes'] ?? null,
         ]);
+
+        if ($isNameable) {
+            $holding->asset->update(['name' => $data['name']]);
+        }
 
         $this->portfolio->snapshot($request->user());
 

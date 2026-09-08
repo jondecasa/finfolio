@@ -367,6 +367,30 @@ class PortfolioTest extends TestCase
         $this->assertEqualsWithDelta(10000, $full->investedEquity(), 0.01);
     }
 
+    public function test_user_can_rename_a_real_estate_position(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Old name', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 100, 'manual_value' => 120,
+        ]);
+
+        $this->actingAs($user)->get(route('holdings.edit', $holding))
+            ->assertOk()->assertSee('Old name');
+
+        $this->actingAs($user)->put(route('holdings.update', $holding), [
+            'account_id' => $account->id,
+            'name' => 'New name',
+            'quantity' => 1,
+            'average_cost' => 100,
+            'manual_value' => 120,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('assets', ['id' => $flat->id, 'name' => 'New name']);
+    }
+
     public function test_user_can_add_a_position(): void
     {
         $user = $this->makePortfolio();
