@@ -54,8 +54,9 @@ class AnalyticsController extends Controller
             // or the full price if bought outright; everything else: full cost
             // basis) — excludes cash holdings.
             'equity_invested' => $equityInvested,
-            // Total return measured against that equity, not the full cost basis:
-            // net worth (after debt) minus what was actually put in.
+            // Total return measured against that equity, not the full cost basis
+            // — price appreciation only (mortgage paydown isn't counted as
+            // profit; see Holding::equityGain()).
             'total_return' => $equityGain,
             'total_return_pct' => $equityGainPct,
             'day_change' => $dayChange,

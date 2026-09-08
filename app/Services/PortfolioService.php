@@ -74,14 +74,20 @@ class PortfolioService
         return $this->fx->convert($holding->investedEquity(), $holding->costCurrency(), $base);
     }
 
-    /** Profit % against the cash equity invested (net of debt), not the full cost basis. */
+    /**
+     * Profit % against the cash equity invested, measured as price appreciation
+     * only (gross value − cost basis — same numerator as holdingGainPct()) over
+     * the smaller equity denominator. Deliberately excludes mortgage paydown:
+     * without tracked rent/interest there's no way to know if that paydown came
+     * from a tenant (real profit) or the owner's own pocket (more capital put
+     * in, not profit).
+     */
     public function holdingEquityGainPct(Holding $holding, string $base): ?float
     {
         $equity = $this->holdingEquityInvested($holding, $base);
+        $gain = $this->holdingGross($holding, $base) - $this->holdingInvested($holding, $base);
 
-        return $equity > 0
-            ? ($this->holdingValue($holding, $base) - $equity) / $equity * 100
-            : null;
+        return $equity > 0 ? $gain / $equity * 100 : null;
     }
 
     /** Net value of the holding at the previous market close, in base currency. */
@@ -117,13 +123,13 @@ class PortfolioService
                 'debt' => 0.0,
                 'previous' => 0.0,
                 'equity_invested' => 0.0,
-                'equity_value' => 0.0,
+                'equity_gain' => 0.0,
                 'positions' => 0,
             ];
         }
 
         $totalValue = $totalGross = $totalInvested = $totalDebt = $totalPrevious = $cashTotal = 0.0;
-        $totalEquityInvested = $totalEquityValue = 0.0;
+        $totalEquityInvested = $totalEquityGain = 0.0;
         $debtHoldings = [];
 
         foreach ($holdings as $holding) {
@@ -133,7 +139,10 @@ class PortfolioService
             $debt = $this->holdingDebt($holding, $base);
             $previous = $this->holdingPreviousValue($holding, $base);
             $isCash = $holding->asset->type === 'cash';
+            // Price appreciation only (gross − cost basis) — not net of debt;
+            // see holdingEquityGainPct() for why mortgage paydown is excluded.
             $equityInvested = $isCash ? 0.0 : $this->holdingEquityInvested($holding, $base);
+            $equityGain = $isCash ? 0.0 : $gross - $invested;
 
             $totalValue += $value;
             $totalGross += $gross;
@@ -141,11 +150,10 @@ class PortfolioService
             $totalDebt += $debt;
             $totalPrevious += $previous;
             $totalEquityInvested += $equityInvested;
+            $totalEquityGain += $equityGain;
 
             if ($isCash) {
                 $cashTotal += $value;
-            } else {
-                $totalEquityValue += $value;
             }
 
             if ($debt > 0) {
@@ -159,7 +167,7 @@ class PortfolioService
             $bucket['debt'] += $debt;
             $bucket['previous'] += $previous;
             $bucket['equity_invested'] += $equityInvested;
-            $bucket['equity_value'] += $isCash ? 0.0 : $value;
+            $bucket['equity_gain'] += $equityGain;
             $bucket['positions']++;
             unset($bucket);
         }
@@ -176,15 +184,14 @@ class PortfolioService
             'total_gain_pct' => $totalInvested > 0 ? ($totalGross - $totalInvested) / $totalInvested * 100 : null,
             'cash_total' => $cashTotal,
             'total_equity_invested' => $totalEquityInvested,
-            'total_equity_gain' => $totalEquityValue - $totalEquityInvested,
-            'total_equity_gain_pct' => $totalEquityInvested > 0 ? ($totalEquityValue - $totalEquityInvested) / $totalEquityInvested * 100 : null,
+            'total_equity_gain' => $totalEquityGain,
+            'total_equity_gain_pct' => $totalEquityInvested > 0 ? $totalEquityGain / $totalEquityInvested * 100 : null,
             'day_change' => $dayChange,
             'day_change_pct' => $totalPrevious > 0 ? $dayChange / $totalPrevious * 100 : null,
             'positions_count' => $holdings->count(),
             'debt_holdings' => collect($debtHoldings)->sortByDesc('debt')->values(),
             'accounts' => collect($perAccount)->map(function ($b) {
                 $dc = $b['value'] - $b['previous'];
-                $equityGain = $b['equity_value'] - $b['equity_invested'];
 
                 return [
                     'account' => $b['account'],
@@ -195,8 +202,8 @@ class PortfolioService
                     'gain' => $b['gross'] - $b['invested'],
                     'gain_pct' => $b['invested'] > 0 ? ($b['gross'] - $b['invested']) / $b['invested'] * 100 : null,
                     'equity_invested' => $b['equity_invested'],
-                    'equity_gain' => $equityGain,
-                    'equity_gain_pct' => $b['equity_invested'] > 0 ? $equityGain / $b['equity_invested'] * 100 : null,
+                    'equity_gain' => $b['equity_gain'],
+                    'equity_gain_pct' => $b['equity_invested'] > 0 ? $b['equity_gain'] / $b['equity_invested'] * 100 : null,
                     'day_change' => $dc,
                     'day_change_pct' => $b['previous'] > 0 ? $dc / $b['previous'] * 100 : null,
                     'positions' => $b['positions'],

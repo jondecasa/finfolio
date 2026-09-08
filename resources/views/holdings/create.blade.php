@@ -194,7 +194,9 @@
                         Net worth counts <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency(((Number(manual.price)||0) - (Number(manual.debt)||0)) * ownershipFraction, manual.currency)"></span>;
                         the debt shows under Liabilities (also scaled to your share). Invested equity is
                         <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency(equityInvested, manual.currency)"></span>
-                        (just the down payment — the rest was financed) — leave it blank if you paid the full price in cash.
+                        (just the down payment — the rest was financed; leave it blank if you paid the full price in cash).
+                        Return on that equity is measured as price appreciation only — paying down the mortgage isn't
+                        counted as profit, since it comes out of your own pocket rather than the property's own income.
                     </p>
                 </div>
             </template>

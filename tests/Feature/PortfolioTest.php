@@ -135,21 +135,24 @@ class PortfolioTest extends TestCase
         $this->actingAs($user)->get('/analytics?account='.$strangerAccount->id)->assertNotFound();
     }
 
-    public function test_analytics_total_return_is_net_of_debt(): void
+    public function test_analytics_net_value_is_net_of_debt_but_total_return_is_price_appreciation_only(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);
         $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
         $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        // No mortgage_down_payment set — equity falls back to the full purchase price.
         Holding::create([
             'account_id' => $account->id, 'asset_id' => $flat->id,
             'quantity' => 1, 'average_cost' => 100, 'manual_value' => 150, 'debt' => 40,
         ]);
 
-        // Net value 150 − 40 = 110; invested 100 → total return +€10.00 (not the +€50 the gross gain would show).
+        // Net value 150 − 40 = 110 (debt reduces net worth). Total return is
+        // price appreciation only, 150 − 100 = €50 — debt does NOT reduce it,
+        // since without a tracked down payment there's nothing to net it against.
         $this->actingAs($user)->get('/analytics')
             ->assertOk()
-            ->assertSee('€10.00')
-            ->assertDontSee('€50.00');
+            ->assertSee('€110.00') // Net value
+            ->assertSee('€50.00'); // Total return
     }
 
     public function test_analytics_total_return_uses_equity_not_full_price_when_a_down_payment_is_set(): void
@@ -163,14 +166,15 @@ class PortfolioTest extends TestCase
             'debt' => 40, 'mortgage_down_payment' => 10,
         ]);
 
-        // Net value 150 − 40 = 110; equity invested is just the €10 down payment
-        // (shown on its own tile) → total return is +€100.00 / +1,000%, not the
-        // +€10.00 / +10% you'd get comparing net value to the full €100 price.
+        // Plusvalía (price appreciation only) is 150 − 100 = €50 — mortgage
+        // paydown isn't counted as profit. Equity invested is just the €10
+        // down payment → total return is +€50.00 / +500%, not the +€10.00 /
+        // +10% you'd get comparing net value to the full €100 price.
         $this->actingAs($user)->get('/analytics')
             ->assertOk()
             ->assertSee('€10.00')   // Equity invested tile
-            ->assertSee('€100.00')  // Total return value
-            ->assertSee('1,000.00%'); // Total return %
+            ->assertSee('€50.00')   // Total return value
+            ->assertSee('500.00%'); // Total return %
     }
 
     public function test_positions_screen_can_be_filtered_to_one_account(): void
@@ -210,10 +214,11 @@ class PortfolioTest extends TestCase
             'debt' => 40, 'mortgage_down_payment' => 10,
         ]);
 
-        // Net value 150 − 40 = 110; equity 10 → ROE = (110−10)/10 = 1,000%.
+        // Plusvalía = 150 − 100 = €50 (mortgage paydown isn't profit); equity
+        // invested is the €10 down payment → ROE = 50/10 = 500%.
         $response = $this->actingAs($user)->get('/positions')->assertOk();
         $response->assertSee('ROE');
-        $response->assertSee('1,000.00%');
+        $response->assertSee('500.00%');
 
         // Only the one real-estate holding gets a ROE line (BTC/ETH don't).
         $this->assertSame(1, substr_count($response->getContent(), 'ROE'));
@@ -286,15 +291,17 @@ class PortfolioTest extends TestCase
 
         // Invested equity is just the down payment (the rest was financed), not the full purchase price.
         $this->assertEqualsWithDelta(20, $portfolio->holdingEquityInvested($holding, 'EUR'), 0.01);
-        // Net value 150 - 40 = 110; profit on the €20 actually put in is €90 = 450%.
-        $this->assertEqualsWithDelta(450, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
+        // Plusvalía (price appreciation, debt aside) is 150 − 100 = €50; profit
+        // on the €20 actually put in is €50 = 250%. Paying down the mortgage
+        // isn't counted as profit — see Holding::equityGain().
+        $this->assertEqualsWithDelta(250, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
 
         $overview = $portfolio->overview($user);
 
         // Total invested equity excludes the cash holding entirely.
         $this->assertEqualsWithDelta(20, $overview['total_equity_invested'], 0.01);
-        $this->assertEqualsWithDelta(90, $overview['total_equity_gain'], 0.01);
-        $this->assertEqualsWithDelta(450, $overview['total_equity_gain_pct'], 0.01);
+        $this->assertEqualsWithDelta(50, $overview['total_equity_gain'], 0.01);
+        $this->assertEqualsWithDelta(250, $overview['total_equity_gain_pct'], 0.01);
     }
 
     public function test_real_estate_bought_outright_uses_full_price_as_equity_when_no_down_payment_set(): void
@@ -341,8 +348,10 @@ class PortfolioTest extends TestCase
         $this->assertEqualsWithDelta(40000, $holding->debtAmount(), 0.01);   // 80,000 * 50%
         $this->assertEqualsWithDelta(25000, $holding->netValue(), 0.01);     // 65,000 - 40,000
         $this->assertEqualsWithDelta(5000, $holding->investedEquity(), 0.01); // 10,000 * 50%
-        $this->assertEqualsWithDelta(20000, $holding->equityGain(), 0.01);   // 25,000 - 5,000
-        $this->assertEqualsWithDelta(400, $holding->equityGainPct(), 0.01);  // same % as full ownership
+        // equityGain is plusvalía only (gross - cost basis), not net of debt:
+        // 65,000 - 50,000 = 15,000 (mortgage paydown isn't counted as profit).
+        $this->assertEqualsWithDelta(15000, $holding->equityGain(), 0.01);
+        $this->assertEqualsWithDelta(300, $holding->equityGainPct(), 0.01);  // 15,000 / 5,000
 
         // Default (no ownership_pct passed) is 100% — existing rows are unaffected.
         $full = Holding::create([

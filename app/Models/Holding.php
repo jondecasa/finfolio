@@ -161,10 +161,20 @@ class Holding extends Model
         return $this->costBasis();
     }
 
-    /** Profit against the cash equity invested, not the full cost basis (net of debt). */
+    /**
+     * Profit against the cash equity invested, measured as price appreciation
+     * only (current value − purchase price) — same as unrealizedGain().
+     *
+     * Deliberately does NOT credit mortgage principal paid down (netValue()
+     * minus investedEquity() would also include that). Without tracking rent
+     * or mortgage interest, there's no way to tell whether that paydown came
+     * from a tenant's rent (real profit) or from the owner's own pocket over
+     * time (just more capital contributed, not profit) — so it's excluded
+     * rather than assumed free.
+     */
     public function equityGain(): float
     {
-        return $this->netValue() - $this->investedEquity();
+        return $this->unrealizedGain();
     }
 
     public function equityGainPct(): ?float

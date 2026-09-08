@@ -106,7 +106,9 @@
             </div>
             <p class="text-xs text-muted">
                 Debt is shown under Liabilities and subtracted from net worth. Invested equity is just the down payment
-                (leave it blank if you paid the full price in cash) — return is measured against that equity.
+                (leave it blank if you paid the full price in cash). Return on that equity is measured as price
+                appreciation only — paying down the mortgage isn't counted as profit, since it comes out of your own
+                pocket rather than the property's own income.
             </p>
             <div>
                 <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share (%)</label>
