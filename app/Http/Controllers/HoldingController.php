@@ -91,7 +91,7 @@ class HoldingController extends Controller
         $this->authorizeHolding($holding);
 
         $isManual = in_array($holding->asset->type, Asset::MANUAL_TYPES, true);
-        $isNameable = in_array($holding->asset->type, ['realestate', 'other'], true);
+        $isNameable = in_array($holding->asset->type, Asset::NAMEABLE_MANUAL_TYPES, true);
 
         $data = $request->validate([
             'account_id' => ['required', Rule::exists('accounts', 'id')->where('user_id', $request->user()->id)],

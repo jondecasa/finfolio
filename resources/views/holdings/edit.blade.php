@@ -79,7 +79,7 @@
             </div>
         @endif
 
-        @if (in_array($asset->type, ['realestate', 'other']))
+        @if (in_array($asset->type, \App\Models\Asset::NAMEABLE_MANUAL_TYPES))
             <div>
                 <label class="mb-1.5 block text-sm font-semibold text-muted">Name</label>
                 <input type="text" name="name" class="field" value="{{ old('name', $asset->name) }}" maxlength="120" required>

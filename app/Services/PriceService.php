@@ -141,10 +141,18 @@ class PriceService
      */
     public function resolveAsset(array $row): Asset
     {
-        $asset = Asset::firstOrNew([
-            'type' => $row['type'],
-            'symbol' => strtoupper($row['symbol']),
-        ]);
+        $type = $row['type'];
+        $symbol = strtoupper($row['symbol']);
+
+        if (in_array($type, Asset::NAMEABLE_MANUAL_TYPES, true)) {
+            // Real estate / other items each have their own free-text, user-
+            // editable name — never share a row across holdings (even the
+            // owner's own), or renaming one would rename every other holding
+            // that happened to generate the same symbol from its name.
+            $asset = new Asset(['type' => $type, 'symbol' => $this->uniqueManualSymbol($type, $symbol)]);
+        } else {
+            $asset = Asset::firstOrNew(['type' => $type, 'symbol' => $symbol]);
+        }
 
         // Placeholder currency; for priced assets refresh() will replace it with
         // the provider's trading currency.
@@ -166,5 +174,24 @@ class PriceService
         }
 
         return $asset->fresh();
+    }
+
+    /**
+     * A (type, symbol) pair is guaranteed unique in the `assets` table, so a
+     * symbol derived from user-typed text (e.g. "Flat in Madrid" → FLAT-IN-
+     * MADRID) could collide with someone else's identically-named position.
+     * Appends "-2", "-3", … only when the plain symbol is already taken.
+     */
+    protected function uniqueManualSymbol(string $type, string $base): string
+    {
+        $base = substr($base, 0, 32);
+        $symbol = $base;
+
+        for ($suffix = 2; Asset::where('type', $type)->where('symbol', $symbol)->exists(); $suffix++) {
+            $tail = '-'.$suffix;
+            $symbol = substr($base, 0, 32 - strlen($tail)).$tail;
+        }
+
+        return $symbol;
     }
 }

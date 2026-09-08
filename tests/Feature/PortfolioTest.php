@@ -391,6 +391,45 @@ class PortfolioTest extends TestCase
         $this->assertDatabaseHas('assets', ['id' => $flat->id, 'name' => 'New name']);
     }
 
+    public function test_two_identically_named_real_estate_positions_get_separate_assets(): void
+    {
+        $user = $this->makePortfolio();
+        $account = $user->accounts()->first();
+        $other = $user->accounts()->create(['name' => 'Side pot', 'currency' => 'EUR']);
+
+        $payload = fn (int $accountId) => [
+            'account_id' => $accountId,
+            'type' => 'realestate',
+            'symbol' => 'FLAT-IN-MADRID',
+            'name' => 'Flat in Madrid',
+            'currency' => 'EUR',
+            'quantity' => 1,
+            'average_cost' => 100000,
+            'manual_price' => 120000,
+        ];
+
+        $this->actingAs($user)->post('/positions', $payload($account->id))->assertRedirect();
+        $this->actingAs($user)->post('/positions', $payload($other->id))->assertRedirect();
+
+        $assets = Asset::where('type', 'realestate')->where('name', 'Flat in Madrid')->get();
+        $this->assertCount(2, $assets);
+        $this->assertNotSame($assets[0]->id, $assets[1]->id);
+        $this->assertNotSame($assets[0]->symbol, $assets[1]->symbol); // one gets a "-2" suffix
+
+        // Renaming one doesn't touch the other.
+        $holding = Holding::where('asset_id', $assets[0]->id)->firstOrFail();
+        $this->actingAs($user)->put(route('holdings.update', $holding), [
+            'account_id' => $holding->account_id,
+            'name' => 'Renamed flat',
+            'quantity' => 1,
+            'average_cost' => 100000,
+            'manual_value' => 120000,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('assets', ['id' => $assets[0]->id, 'name' => 'Renamed flat']);
+        $this->assertDatabaseHas('assets', ['id' => $assets[1]->id, 'name' => 'Flat in Madrid']);
+    }
+
     public function test_user_can_add_a_position(): void
     {
         $user = $this->makePortfolio();

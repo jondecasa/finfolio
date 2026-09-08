@@ -18,6 +18,14 @@ class Asset extends Model
     /** Manually-valued types: no search, no live price. */
     public const MANUAL_TYPES = ['realestate', 'other', 'cash'];
 
+    /**
+     * Manual types with a user-editable, free-text name (real estate, other
+     * items) — as opposed to cash, whose name is always auto-generated from
+     * its currency. Each one gets its own dedicated Asset row (never reused
+     * across holdings) so renaming one can never rename another user's.
+     */
+    public const NAMEABLE_MANUAL_TYPES = ['realestate', 'other'];
+
     public function typeLabel(): string
     {
         return config("finfolio.categories.{$this->type}.label")
