@@ -325,7 +325,7 @@ class PortfolioTest extends TestCase
         $this->assertEqualsWithDelta(20, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
     }
 
-    public function test_rented_real_estate_roce_counts_rent_but_roe_does_not(): void
+    public function test_roce_uses_projected_rent_roe_uses_accumulated_rent(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);
         $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
@@ -338,20 +338,32 @@ class PortfolioTest extends TestCase
 
         $portfolio = app(PortfolioService::class);
 
-        // ROCE: plusvalía (200) + a year of rent (50*12=600) = 800, over the
-        // full purchase price (1000) = 80%. Unlevered — financing aside.
+        // ROCE: plusvalía (200) + a *projected* year of rent (50*12=600) = 800,
+        // over the full purchase price (1000) = 80%. Unlevered — financing aside.
         $this->assertEqualsWithDelta(600, $holding->annualRentalIncome(), 0.01);
         $this->assertEqualsWithDelta(80, $portfolio->holdingRocePct($holding, 'EUR'), 0.01);
         $this->assertTrue($holding->isRented());
 
-        // ROE is unaffected by rent — still just plusvalía (200) over the
-        // €200 down payment = 100%, same as before rent was ever added.
+        // ROE ignores *projected* rent — it only counts rent actually collected
+        // (accumulated_rent, still 0 here): plusvalía 200 / €200 down = 100%.
         $this->assertEqualsWithDelta(100, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
 
-        // Not rented → no ROCE line, ROCE still computable but isRented() is false.
-        $holding->monthly_rent = null;
-        $this->assertFalse($holding->isRented());
-        $this->assertEqualsWithDelta(0, $holding->annualRentalIncome(), 0.01);
+        // Record €150 of rent actually collected → ROE numerator becomes
+        // 200 plusvalía + 150 rent = 350, over the €200 down payment = 175%.
+        // ROCE (projected) is unchanged.
+        $holding->update(['accumulated_rent' => 150]);
+        $this->assertEqualsWithDelta(175, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
+        $this->assertEqualsWithDelta(350, $holding->equityGain(), 0.01);
+        $this->assertEqualsWithDelta(80, $portfolio->holdingRocePct($holding, 'EUR'), 0.01);
+
+        // Portfolio "Total return" (= aggregate ROE) picks up the rent too.
+        $overview = $portfolio->overview($user);
+        $this->assertEqualsWithDelta(350, $overview['total_equity_gain'], 0.01);
+        $this->assertEqualsWithDelta(175, $overview['total_equity_gain_pct'], 0.01);
+
+        // Accumulated rent is scaled by the ownership share, like every other figure.
+        $holding->update(['ownership_pct' => 50]);
+        $this->assertEqualsWithDelta(75, $holding->accumulatedRent(), 0.01); // 150 * 50%
     }
 
     public function test_positions_screen_shows_roce_only_when_rented(): void

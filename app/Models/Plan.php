@@ -21,7 +21,7 @@ class Plan extends Model
     use HasFactory;
 
     /** What the movement changes on the holding. */
-    public const TARGETS = ['quantity', 'debt', 'value'];
+    public const TARGETS = ['quantity', 'debt', 'value', 'rent'];
 
     /** `in` adds (buy / draw down debt / raise value); `out` subtracts. */
     public const DIRECTIONS = ['in', 'out'];
@@ -131,6 +131,7 @@ class Plan extends Model
         $verb = match (true) {
             $this->target === 'quantity' => $this->direction === 'in' ? 'Buy' : 'Sell',
             $this->target === 'debt' => $this->direction === 'in' ? 'Increase debt on' : 'Reduce debt on',
+            $this->target === 'rent' => $this->direction === 'in' ? 'Add rent to' : 'Deduct rent from',
             default => $this->direction === 'in' ? 'Add value to' : 'Reduce value of',
         };
 

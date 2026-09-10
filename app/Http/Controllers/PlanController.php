@@ -206,6 +206,12 @@ class PlanController extends Controller
             ]);
         }
 
+        if ($data['target'] === 'rent' && $data['amount_kind'] !== 'cash') {
+            throw ValidationException::withMessages([
+                'amount_kind' => 'Rent is always a money amount.',
+            ]);
+        }
+
         return $data;
     }
 
@@ -217,7 +223,7 @@ class PlanController extends Controller
         $type = $holding->asset->type;
         $allowed = match (true) {
             in_array($type, Asset::PRICED_TYPES, true) => ['quantity'],
-            $type === 'realestate' => ['debt', 'value'],
+            $type === 'realestate' => ['debt', 'value', 'rent'],
             default => ['value'], // cash, other
         };
 

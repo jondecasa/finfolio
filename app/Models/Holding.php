@@ -27,6 +27,7 @@ class Holding extends Model
         'mortgage_down_payment',
         'ownership_pct',
         'monthly_rent',
+        'accumulated_rent',
         'notes',
     ];
 
@@ -40,6 +41,7 @@ class Holding extends Model
             'mortgage_down_payment' => 'float',
             'ownership_pct' => 'float',
             'monthly_rent' => 'float',
+            'accumulated_rent' => 'float',
         ];
     }
 
@@ -164,19 +166,18 @@ class Holding extends Model
     }
 
     /**
-     * Profit against the cash equity invested, measured as price appreciation
-     * only (current value − purchase price) — same as unrealizedGain().
+     * Profit against the cash equity invested: price appreciation
+     * (current value − purchase price) PLUS any rent actually collected to
+     * date (`accumulated_rent`).
      *
-     * Deliberately does NOT credit mortgage principal paid down (netValue()
-     * minus investedEquity() would also include that). Without tracking rent
-     * or mortgage interest, there's no way to tell whether that paydown came
-     * from a tenant's rent (real profit) or from the owner's own pocket over
-     * time (just more capital contributed, not profit) — so it's excluded
-     * rather than assumed free.
+     * Rent received is real cash on the equity — it belongs here. Mortgage
+     * principal paid down is still deliberately NOT credited: without knowing
+     * whether it came from the tenant's rent or the owner's own pocket, it
+     * can't be assumed to be profit.
      */
     public function equityGain(): float
     {
-        return $this->unrealizedGain();
+        return $this->unrealizedGain() + $this->accumulatedRent();
     }
 
     public function equityGainPct(): ?float
@@ -192,10 +193,16 @@ class Holding extends Model
         return (float) ($this->monthly_rent ?? 0) > 0;
     }
 
-    /** Rent collected over a year, in costCurrency(), scaled to the user's ownership share. */
+    /** Rent collected over a year (projected from monthly_rent), in costCurrency(), scaled to the user's share. */
     public function annualRentalIncome(): float
     {
         return (float) ($this->monthly_rent ?? 0) * 12 * $this->ownershipFraction();
+    }
+
+    /** Total rent actually collected to date, in costCurrency(), scaled to the user's ownership share. */
+    public function accumulatedRent(): float
+    {
+        return (float) ($this->accumulated_rent ?? 0) * $this->ownershipFraction();
     }
 
     /**

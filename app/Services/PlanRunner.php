@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\Log;
  *  - `quantity` plans buy/sell units (recomputing the weighted average cost on
  *    buys) using the asset's current live price;
  *  - `debt` / `value` plans move a cash amount on a manually-valued holding
- *    (e.g. paying down a mortgage).
+ *    (e.g. paying down a mortgage);
+ *  - `rent` plans add collected rent to a real-estate holding's running total.
  *
  * A quantity or value can never go below zero: such a movement is recorded as
  * `skipped`. Debt is clamped at zero instead. Missed periods are not replayed —
@@ -92,6 +93,7 @@ class PlanRunner
         $run = match ($plan->target) {
             'quantity' => $this->applyQuantity($plan, $holding, $on),
             'debt' => $this->applyDebt($plan, $holding, $on),
+            'rent' => $this->applyRent($plan, $holding, $on),
             default => $this->applyValue($plan, $holding, $on),
         };
 
@@ -187,6 +189,35 @@ class PlanRunner
             'cash_currency' => $plan->currency ?: $assetCcy,
             'asset_currency' => $assetCcy,
             'resulting_debt' => $newDebt,
+            'note' => $note,
+        ]);
+    }
+
+    protected function applyRent(Plan $plan, Holding $holding, CarbonImmutable $on): PlanRun
+    {
+        // Accumulated rent is held in the property's cost currency (same as
+        // monthly_rent), so convert the plan amount into that.
+        $ccy = $holding->costCurrency();
+        $cash = $this->fx->convert((float) $plan->amount, $plan->currency ?: $ccy, $ccy);
+
+        $new = $plan->direction === 'in'
+            ? (float) ($holding->accumulated_rent ?? 0) + $cash
+            : (float) ($holding->accumulated_rent ?? 0) - $cash;
+
+        $note = null;
+        if ($new < 0) {
+            $new = 0.0;
+            $note = 'Accumulated rent cleared';
+        }
+
+        $holding->accumulated_rent = $new;
+        $holding->save();
+
+        return $this->record($plan, $on, 'applied', [
+            'cash_amount' => (float) $plan->amount,
+            'cash_currency' => $plan->currency ?: $ccy,
+            'asset_currency' => $holding->asset->currency ?: 'USD',
+            'resulting_rent' => $new,
             'note' => $note,
         ]);
     }

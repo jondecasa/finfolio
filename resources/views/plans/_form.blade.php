@@ -7,6 +7,7 @@
         ? match (true) {
             $plan->target === 'quantity' => $plan->direction === 'in' ? 'buy' : 'sell',
             $plan->target === 'debt' => $plan->direction === 'in' ? 'debt_in' : 'debt_out',
+            $plan->target === 'rent' => $plan->direction === 'in' ? 'rent_in' : 'rent_out',
             default => $plan->direction === 'in' ? 'value_in' : 'value_out',
         }
         : 'buy';
@@ -40,6 +41,7 @@
                       { k: 'sell', label: 'Sell', t: 'quantity', d: 'out' },
                   ];
                   if (this.isRealEstate) return [
+                      { k: 'rent_in',   label: 'Add rent',       t: 'rent',  d: 'in'  },
                       { k: 'debt_out',  label: 'Reduce debt',    t: 'debt',  d: 'out' },
                       { k: 'debt_in',   label: 'Increase debt',  t: 'debt',  d: 'in'  },
                       { k: 'value_in',  label: 'Increase value', t: 'value', d: 'in'  },

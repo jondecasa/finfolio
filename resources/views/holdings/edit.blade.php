@@ -129,13 +129,21 @@
                 </div>
             </div>
             <div>
+                <label class="mb-1.5 block text-sm font-semibold text-muted">Accumulated rent <span class="text-muted/60">(collected so far)</span></label>
+                <input type="number" step="any" min="0" name="accumulated_rent" class="field"
+                       value="{{ old('accumulated_rent', $num($holding->accumulated_rent)) }}" inputmode="decimal" placeholder="0.00">
+                <p class="mt-1 text-xs text-muted">
+                    Total rent actually received to date. Counts as profit in ROE. A recurring
+                    <a href="{{ route('plans.create') }}" class="underline">Plan</a> ("Add rent") can top this up automatically.
+                </p>
+            </div>
+            <div>
                 <p class="text-xs text-muted">
                     Debt is shown under Liabilities and subtracted from net worth. Invested equity is just the down
-                    payment (leave it blank if you paid the full price in cash). Return on that equity (ROE) is
-                    measured as price appreciation only — paying down the mortgage isn't counted as profit, since it
-                    comes out of your own pocket rather than the property's own income. If it's rented out, ROCE
-                    additionally counts a year of rent against the full purchase price — the property's own return,
-                    financing aside.
+                    payment (leave it blank if you paid the full price in cash). Return on that equity (ROE) is price
+                    appreciation plus rent collected to date — paying down the mortgage isn't counted as profit, since
+                    it comes out of your own pocket rather than the property's own income. ROCE additionally counts a
+                    year of projected rent against the full purchase price — the property's own return, financing aside.
                 </p>
                 <p class="mt-1 text-xs text-muted">
                     All figures above are for the whole property. If you only own part of it (e.g. split with a

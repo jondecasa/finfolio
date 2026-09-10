@@ -26,6 +26,7 @@ class PlanRun extends Model
         'resulting_avg_cost',
         'resulting_debt',
         'resulting_value',
+        'resulting_rent',
         'note',
     ];
 
@@ -40,6 +41,7 @@ class PlanRun extends Model
             'resulting_avg_cost' => 'float',
             'resulting_debt' => 'float',
             'resulting_value' => 'float',
+            'resulting_rent' => 'float',
         ];
     }
 

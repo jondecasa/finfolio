@@ -100,18 +100,18 @@
                                     @endif
                                 </div>
                             @else
+                                @php
+                                    $to = $run->resulting_debt !== null ? 'debt' : ($run->resulting_rent !== null ? 'rent' : 'value');
+                                    $now = $run->resulting_debt ?? $run->resulting_rent ?? $run->resulting_value;
+                                @endphp
                                 <div class="text-sm font-semibold">
-                                    @if ($run->note && $run->resulting_debt === null){{ $run->note }} · @endif
+                                    @if ($run->note && $to !== 'debt'){{ $run->note }} · @endif
                                     {{ \App\Support\Money::format((float) $run->cash_amount, $run->cash_currency ?? 'EUR') }}
-                                    @if ($run->resulting_debt !== null) to debt @else to value @endif
+                                    to {{ $to }}
                                 </div>
                                 <div class="text-xs text-muted">
-                                    @if ($run->resulting_debt !== null)
-                                        debt now {{ \App\Support\Money::format((float) $run->resulting_debt, $run->asset_currency ?? 'EUR') }}
-                                        @if ($run->note) · {{ $run->note }} @endif
-                                    @else
-                                        value now {{ \App\Support\Money::format((float) $run->resulting_value, $run->asset_currency ?? 'EUR') }}
-                                    @endif
+                                    {{ $to }} now {{ \App\Support\Money::format((float) $now, $run->asset_currency ?? 'EUR') }}
+                                    @if ($run->note && $to === 'debt') · {{ $run->note }} @endif
                                 </div>
                             @endif
                         </div>

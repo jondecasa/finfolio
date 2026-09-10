@@ -22,7 +22,7 @@
               category: @js($prefillType),
               nonSearchable: @js($nonSearchable),
               asset: @js($hasPrefill ? $prefill : null),
-              manual: { name: '', symbol: '', currency: @js($baseCurrency), price: '', purchase: '', debt: '', downPayment: '', ownershipPct: '100', monthlyRent: '' },
+              manual: { name: '', symbol: '', currency: @js($baseCurrency), price: '', purchase: '', debt: '', downPayment: '', ownershipPct: '100', monthlyRent: '', accumulatedRent: '' },
               avgCost: '{{ old('average_cost') }}',
               costCcy: @js(old('cost_currency', $baseCurrency)),
               qty: {{ old('quantity', 1) }},
@@ -56,6 +56,7 @@
               get outDownPayment() { return this.isRealEstate ? (this.manual.downPayment || '') : ''; },
               get outOwnershipPct() { return this.isRealEstate ? (this.manual.ownershipPct || '100') : ''; },
               get outMonthlyRent() { return this.isRealEstate ? (this.manual.monthlyRent || '') : ''; },
+              get outAccumulatedRent() { return this.isRealEstate ? (this.manual.accumulatedRent || '') : ''; },
               get ownershipFraction() { return this.isRealEstate ? ((Number(this.manual.ownershipPct) || 100) / 100) : 1; },
               get equityInvested() { return this.isRealEstate ? (this.manual.downPayment !== '' ? (Number(this.manual.downPayment)||0) : (Number(this.manual.purchase)||0)) * this.ownershipFraction : 0; },
               setCategory(c) {
@@ -196,16 +197,21 @@
                             <input type="number" step="any" min="0" class="field" x-model="manual.monthlyRent" inputmode="decimal" placeholder="0.00">
                         </div>
                     </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-semibold text-muted">Accumulated rent <span class="text-muted/60">(collected so far)</span></label>
+                        <input type="number" step="any" min="0" class="field" x-model="manual.accumulatedRent" inputmode="decimal" placeholder="0.00">
+                        <p class="mt-1 text-xs text-muted">Total rent you've actually received on this property to date. Counts as profit in ROE. A recurring Plan can top this up automatically.</p>
+                    </div>
                     <p class="text-xs text-muted">All figures above are for the whole property. If you only own part of it (e.g. split with a co-owner), everything below is scaled to your share.</p>
                     <p class="text-xs text-muted">
                         Net worth counts <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency(((Number(manual.price)||0) - (Number(manual.debt)||0)) * ownershipFraction, manual.currency)"></span>;
                         the debt shows under Liabilities (also scaled to your share). Invested equity is
                         <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency(equityInvested, manual.currency)"></span>
                         (just the down payment — the rest was financed; leave it blank if you paid the full price in cash).
-                        Return on that equity (ROE) is measured as price appreciation only — paying down the mortgage
-                        isn't counted as profit, since it comes out of your own pocket rather than the property's own
-                        income. If it's rented out, ROCE additionally counts a year of rent against the full purchase
-                        price — the property's own return, financing aside.
+                        Return on that equity (ROE) is price appreciation plus rent collected to date — paying down the
+                        mortgage isn't counted as profit, since it comes out of your own pocket rather than the property's
+                        own income. ROCE additionally counts a year of projected rent against the full purchase price —
+                        the property's own return, financing aside.
                     </p>
                 </div>
             </template>
@@ -249,6 +255,7 @@
         <input type="hidden" name="mortgage_down_payment" :value="outDownPayment">
         <input type="hidden" name="ownership_pct" :value="outOwnershipPct">
         <input type="hidden" name="monthly_rent" :value="outMonthlyRent">
+        <input type="hidden" name="accumulated_rent" :value="outAccumulatedRent">
 
         <div>
             <label class="mb-1.5 block text-sm font-semibold text-muted">Note (optional)</label>

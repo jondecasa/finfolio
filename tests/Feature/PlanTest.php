@@ -220,6 +220,45 @@ class PlanTest extends TestCase
         $this->assertEqualsWithDelta(0, $holding->debt, 1e-6);
     }
 
+    public function test_rent_plan_tops_up_accumulated_rent(): void
+    {
+        [$user, $account] = $this->userWithAccount('EUR');
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 100000, 'manual_value' => 120000,
+            'mortgage_down_payment' => 20000, 'accumulated_rent' => 500,
+        ]);
+
+        $plan = $this->plan($holding, [
+            'target' => 'rent', 'direction' => 'in', 'amount_kind' => 'cash', 'amount' => 800, 'currency' => 'EUR',
+        ]);
+
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()]);
+        $holding->refresh();
+        $this->assertEqualsWithDelta(1300, $holding->accumulated_rent, 1e-6); // 500 + 800
+
+        // The run records where the accumulator landed.
+        $this->assertDatabaseHas('plan_runs', ['plan_id' => $plan->id, 'resulting_rent' => 1300]);
+
+        // And it now shows up in ROE: plusvalía 20000 + rent 1300 = 21300 over
+        // the 20000 down payment = 106.5%.
+        $portfolio = app(\App\Services\PortfolioService::class);
+        $this->assertEqualsWithDelta(106.5, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
+    }
+
+    public function test_rent_plans_are_only_offered_for_real_estate(): void
+    {
+        [$user, $account] = $this->userWithAccount('EUR');
+        $btc = $this->pricedHolding($account, 1.0, 100, 100);
+
+        $this->actingAs($user)->post('/plans', [
+            'holding_id' => $btc->id,
+            'target' => 'rent', 'direction' => 'in', 'amount_kind' => 'cash', 'amount' => 100, 'currency' => 'EUR',
+            'frequency' => 'monthly', 'starts_on' => CarbonImmutable::today()->toDateString(),
+        ])->assertSessionHasErrors('target');
+    }
+
     public function test_percentage_value_plan_appreciates_a_property(): void
     {
         [$user, $account] = $this->userWithAccount('EUR');

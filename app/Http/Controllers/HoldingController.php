@@ -56,6 +56,7 @@ class HoldingController extends Controller
                 'mortgage_down_payment' => $data['type'] === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
                 'ownership_pct' => $data['type'] === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
                 'monthly_rent' => $data['type'] === 'realestate' ? ($data['monthly_rent'] ?? null) : null,
+                'accumulated_rent' => $data['type'] === 'realestate' ? ($data['accumulated_rent'] ?? null) : null,
                 'notes' => $data['notes'] ?? null,
             ],
         );
@@ -109,6 +110,7 @@ class HoldingController extends Controller
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'monthly_rent' => ['nullable', 'numeric', 'gte:0'],
+            'accumulated_rent' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'redirect_to' => ['nullable', 'string'],
         ]);
@@ -126,6 +128,7 @@ class HoldingController extends Controller
             'mortgage_down_payment' => $isRealEstate ? ($data['mortgage_down_payment'] ?? null) : null,
             'ownership_pct' => $isRealEstate ? ($data['ownership_pct'] ?? 100) : 100,
             'monthly_rent' => $isRealEstate ? ($data['monthly_rent'] ?? null) : null,
+            'accumulated_rent' => $isRealEstate ? ($data['accumulated_rent'] ?? null) : null,
             'notes' => $data['notes'] ?? null,
         ]);
 
@@ -171,6 +174,7 @@ class HoldingController extends Controller
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'monthly_rent' => ['nullable', 'numeric', 'gte:0'],
+            'accumulated_rent' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 

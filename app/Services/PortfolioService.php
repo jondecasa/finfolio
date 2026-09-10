@@ -74,18 +74,25 @@ class PortfolioService
         return $this->fx->convert($holding->investedEquity(), $holding->costCurrency(), $base);
     }
 
+    /** Rent actually collected on the position to date, converted to base currency. */
+    public function holdingAccumulatedRent(Holding $holding, string $base): float
+    {
+        return $this->fx->convert($holding->accumulatedRent(), $holding->costCurrency(), $base);
+    }
+
     /**
-     * Profit % against the cash equity invested, measured as price appreciation
-     * only (gross value − cost basis — same numerator as holdingGainPct()) over
-     * the smaller equity denominator. Deliberately excludes mortgage paydown:
-     * without tracked rent/interest there's no way to know if that paydown came
+     * Profit % against the cash equity invested: price appreciation (gross
+     * value − cost basis) plus any rent actually collected to date, over the
+     * smaller equity denominator. Deliberately excludes mortgage paydown:
+     * without tracked interest there's no way to know if that paydown came
      * from a tenant (real profit) or the owner's own pocket (more capital put
-     * in, not profit).
+     * in, not profit) — but rent received is unambiguously real cash.
      */
     public function holdingEquityGainPct(Holding $holding, string $base): ?float
     {
         $equity = $this->holdingEquityInvested($holding, $base);
-        $gain = $this->holdingGross($holding, $base) - $this->holdingInvested($holding, $base);
+        $gain = $this->holdingGross($holding, $base) - $this->holdingInvested($holding, $base)
+            + $this->holdingAccumulatedRent($holding, $base);
 
         return $equity > 0 ? $gain / $equity * 100 : null;
     }
@@ -159,10 +166,11 @@ class PortfolioService
             $debt = $this->holdingDebt($holding, $base);
             $previous = $this->holdingPreviousValue($holding, $base);
             $isCash = $holding->asset->type === 'cash';
-            // Price appreciation only (gross − cost basis) — not net of debt;
-            // see holdingEquityGainPct() for why mortgage paydown is excluded.
+            // Equity return = price appreciation (gross − cost basis) plus rent
+            // actually collected to date — not net of debt; see
+            // holdingEquityGainPct() for why mortgage paydown is excluded.
             $equityInvested = $isCash ? 0.0 : $this->holdingEquityInvested($holding, $base);
-            $equityGain = $isCash ? 0.0 : $gross - $invested;
+            $equityGain = $isCash ? 0.0 : ($gross - $invested) + $this->holdingAccumulatedRent($holding, $base);
 
             $totalValue += $value;
             $totalGross += $gross;
