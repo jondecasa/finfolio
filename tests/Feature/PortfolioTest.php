@@ -393,6 +393,37 @@ class PortfolioTest extends TestCase
         $this->assertEqualsWithDelta(0, $cashRow['invested'], 0.01);
     }
 
+    public function test_analytics_has_a_ring_tab_per_asset_type_present(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+
+        // Three ETFs at different weights, plus one stock.
+        foreach ([['A', 100, 4], ['B', 50, 3], ['C', 20, 2]] as [$sym, $price, $qty]) {
+            $a = Asset::create(['type' => 'etf', 'symbol' => "ETF$sym", 'name' => "Fund $sym", 'currency' => 'EUR', 'current_price' => $price, 'price_updated_at' => now()]);
+            Holding::create(['account_id' => $account->id, 'asset_id' => $a->id, 'quantity' => $qty, 'average_cost' => $price]);
+        }
+        $stock = Asset::create(['type' => 'stock', 'symbol' => 'ACME', 'name' => 'Acme Corp', 'currency' => 'EUR', 'current_price' => 10, 'price_updated_at' => now()]);
+        Holding::create(['account_id' => $account->id, 'asset_id' => $stock->id, 'quantity' => 1, 'average_cost' => 10]);
+
+        // A tab chip for each type present, and the per-type ring/list data.
+        $res = $this->actingAs($user)->get('/analytics')->assertOk()
+            ->assertSee('All positions')
+            ->assertSee('>Type<', false)
+            ->assertSee("tab = 'etf'", false)
+            ->assertSee("tab = 'stock'", false)
+            ->assertSee('Fund A')->assertSee('Fund B')->assertSee('Fund C');
+
+        // ?tab=etf survives the controller's validation (not reset to "positions").
+        $this->actingAs($user)->get('/analytics?tab=etf')->assertOk()->assertSee("tab: 'etf'", false);
+        // An unknown tab falls back to "positions".
+        $this->actingAs($user)->get('/analytics?tab=bogus')->assertOk()->assertSee("tab: 'positions'", false);
+
+        // ETF ring weights are relative to the ETF subtotal (4*100 + 3*50 + 2*20
+        // = 590), not the whole portfolio — so slice %s add up to 100 within ETF.
+        $this->assertStringContainsString('67.8', $res->getContent()); // 400/590
+    }
+
     public function test_analytics_chart_shows_asset_name_not_symbol(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);

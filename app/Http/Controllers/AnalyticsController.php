@@ -64,7 +64,10 @@ class AnalyticsController extends Controller
             'positions_count' => $positionsCount,
         ];
 
-        $tab = in_array($request->query('tab'), ['positions', 'type'], true)
+        // Ring-chart view: "positions" (all), "type" (by asset type), or one of
+        // the per-type keys present in the portfolio ("etf", "crypto", …).
+        $tabKeys = array_merge(['positions', 'type'], $allocation['by_type']->pluck('key')->all());
+        $tab = in_array($request->query('tab'), $tabKeys, true)
             ? $request->query('tab')
             : 'positions';
 

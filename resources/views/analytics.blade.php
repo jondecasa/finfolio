@@ -28,6 +28,29 @@
     $positionSegments = $buildSegments($positions, 'name');
     $typeSegments = $buildSegments($allocation['by_type'], 'label');
 
+    // One extra hero-ring view per asset type present: shows how that type's
+    // own positions are split among themselves (e.g. how 3 ETFs stack up).
+    $presentTypes = $allocation['by_type'];
+    $typeRings = [];
+    $typeLists = [];
+    foreach ($presentTypes as $t) {
+        $rows = $positions->where('type', $t['key'])->sortByDesc('value')->values();
+        $sub = $rows->sum('value');
+        $rows = $rows->map(function ($p) use ($sub) {
+            // Weight relative to this type's subtotal so the slice %s add to 100.
+            $p['weight'] = $sub > 0 ? $p['value'] / $sub * 100 : 0;
+            return $p;
+        })->values();
+        $typeRings[$t['key']] = $buildSegments($rows, 'name');
+        $typeLists[$t['key']] = $rows;
+    }
+
+    // Position-list views keyed by tab: "positions" (all) plus one per type.
+    $listViews = ['positions' => $positions->values()];
+    foreach ($typeLists as $key => $rows) {
+        $listViews[$key] = $rows;
+    }
+
     // Second ring: money actually invested (equity put in — real estate's down
     // payment, everything else's cost basis; cash excluded), grouped by type,
     // as opposed to the hero ring above which is weighted by current value.
@@ -47,9 +70,20 @@
              chart: null,
              hovered: null,
              pinned: null,
-             data: { positions: @js($positionSegments), type: @js($typeSegments) },
-             counts: { positions: {{ $positions->count() }}, type: {{ $allocation['by_type']->count() }} },
+             data: {
+                 positions: @js($positionSegments),
+                 type: @js($typeSegments),
+                 @foreach ($presentTypes as $t) {{ $t['key'] }}: @js($typeRings[$t['key']]), @endforeach
+             },
+             totals: {
+                 positions: {{ $allocation['total'] }},
+                 type: {{ $allocation['total'] }},
+                 @foreach ($presentTypes as $t) {{ $t['key'] }}: {{ $typeLists[$t['key']]->sum('value') }}, @endforeach
+             },
+             labels: { @foreach ($presentTypes as $t) {{ $t['key'] }}: @js($t['label']), @endforeach },
              get segments() { return this.data[this.tab] || []; },
+             get tabTotal() { return this.totals[this.tab] ?? this.totals.positions; },
+             get totalLabel() { return this.labels[this.tab] ? this.labels[this.tab] + ' total' : 'Total value'; },
              get active() { return this.hovered || this.pinned; },
              get centerValue() { return this.active ? window.Finfolio.formatCurrency(this.active.value, this.currency) : ''; },
              get centerMeta() { return this.active ? this.active.label + ' · ' + this.active.weight.toFixed(1) + '%' : ''; },
@@ -116,8 +150,10 @@
         </div>
 
         <div class="no-scrollbar app-pad mt-5 flex gap-2 overflow-x-auto pb-2">
-            @foreach (['positions' => 'All positions', 'type' => 'Type'] as $key => $label)
-                <button type="button" @click="tab = '{{ $key }}'" class="tab" :class="tab === '{{ $key }}' ? 'tab-active' : ''">{{ $label }}</button>
+            <button type="button" @click="tab = 'positions'" class="tab shrink-0" :class="tab === 'positions' ? 'tab-active' : ''">All positions</button>
+            <button type="button" @click="tab = 'type'" class="tab shrink-0" :class="tab === 'type' ? 'tab-active' : ''">Type</button>
+            @foreach ($presentTypes as $t)
+                <button type="button" @click="tab = '{{ $t['key'] }}'" class="tab shrink-0" :class="tab === '{{ $t['key'] }}' ? 'tab-active' : ''">{{ $t['label'] }}</button>
             @endforeach
         </div>
 
@@ -135,8 +171,8 @@
                 </div>
 
                 <div class="mt-5 flex items-center justify-between border-t border-white/5 pt-4 text-sm">
-                    <span class="text-muted">Total value</span>
-                    <x-money :amount="$allocation['total']" :currency="$currency" :hidden="$hidden" class="font-semibold" />
+                    <span class="text-muted" x-text="totalLabel"></span>
+                    <span class="font-semibold" x-text="{{ $hidden ? "'••••••'" : 'window.Finfolio.formatCurrency(tabTotal, currency)' }}"></span>
                 </div>
 
                 <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2">
@@ -212,32 +248,34 @@
             </div>
         @endif
 
-        {{-- All positions --}}
-        <div class="app-pad mt-6 space-y-2" x-show="tab === 'positions'">
-            @forelse ($positions as $i => $p)
-                <a href="{{ route('holdings.edit', $p['holding']) }}" class="flex items-center gap-3 rounded-2xl bg-ink-800 p-3 transition hover:bg-ink-700">
-                    <span class="h-2 w-2 shrink-0 rounded-full" style="background: {{ $palette[$i % count($palette)] }}"></span>
-                    <span class="logo-bubble">
-                        @if ($p['logo_url'])
-                            <img src="{{ $p['logo_url'] }}" alt="" class="h-full w-full object-cover">
-                        @else
-                            {{ \Illuminate\Support\Str::substr($p['symbol'], 0, 3) }}
-                        @endif
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <span class="truncate font-semibold">{{ $p['name'] }}</span>
-                            <span class="shrink-0 font-semibold">{{ number_format($p['weight'], 1) }}%</span>
+        {{-- Positions list: all, or filtered to the selected type --}}
+        @foreach ($listViews as $viewKey => $rows)
+            <div class="app-pad mt-6 space-y-2" x-show="tab === '{{ $viewKey }}'" @if ($viewKey !== 'positions') x-cloak @endif>
+                @forelse ($rows as $i => $p)
+                    <a href="{{ route('holdings.edit', $p['holding']) }}" class="flex items-center gap-3 rounded-2xl bg-ink-800 p-3 transition hover:bg-ink-700">
+                        <span class="h-2 w-2 shrink-0 rounded-full" style="background: {{ $palette[$i % count($palette)] }}"></span>
+                        <span class="logo-bubble">
+                            @if ($p['logo_url'])
+                                <img src="{{ $p['logo_url'] }}" alt="" class="h-full w-full object-cover">
+                            @else
+                                {{ \Illuminate\Support\Str::substr($p['symbol'], 0, 3) }}
+                            @endif
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="truncate font-semibold">{{ $p['name'] }}</span>
+                                <span class="shrink-0 font-semibold">{{ number_format($p['weight'], 1) }}%</span>
+                            </div>
+                            <div class="mt-0.5 text-xs text-muted">
+                                <x-money :amount="$p['value']" :currency="$currency" :hidden="$hidden" />
+                            </div>
                         </div>
-                        <div class="mt-0.5 text-xs text-muted">
-                            <x-money :amount="$p['value']" :currency="$currency" :hidden="$hidden" />
-                        </div>
-                    </div>
-                </a>
-            @empty
-                <p class="py-10 text-center text-sm text-muted">No positions yet.</p>
-            @endforelse
-        </div>
+                    </a>
+                @empty
+                    <p class="py-10 text-center text-sm text-muted">No positions yet.</p>
+                @endforelse
+            </div>
+        @endforeach
 
         {{-- By type --}}
         <div class="app-pad mt-6 space-y-2" x-show="tab === 'type'" x-cloak>
