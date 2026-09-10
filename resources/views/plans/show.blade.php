@@ -101,7 +101,7 @@
                                 </div>
                             @else
                                 @php
-                                    $to = $run->resulting_debt !== null ? 'debt' : ($run->resulting_rent !== null ? 'rent' : 'value');
+                                    $to = $run->resulting_debt !== null ? 'debt' : ($run->resulting_rent !== null ? 'net rent' : 'value');
                                     $now = $run->resulting_debt ?? $run->resulting_rent ?? $run->resulting_value;
                                 @endphp
                                 <div class="text-sm font-semibold">

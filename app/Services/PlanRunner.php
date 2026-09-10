@@ -207,7 +207,7 @@ class PlanRunner
         $note = null;
         if ($new < 0) {
             $new = 0.0;
-            $note = 'Accumulated rent cleared';
+            $note = 'Accumulated net rent cleared';
         }
 
         $holding->accumulated_rent = $new;

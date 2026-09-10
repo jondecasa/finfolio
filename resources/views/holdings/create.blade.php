@@ -198,9 +198,9 @@
                         </div>
                     </div>
                     <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-muted">Accumulated rent <span class="text-muted/60">(collected so far)</span></label>
+                        <label class="mb-1.5 block text-sm font-semibold text-muted">Accumulated net rent <span class="text-muted/60">(collected so far)</span></label>
                         <input type="number" step="any" min="0" class="field" x-model="manual.accumulatedRent" inputmode="decimal" placeholder="0.00">
-                        <p class="mt-1 text-xs text-muted">Total rent you've actually received on this property to date. Counts as profit in ROE. A recurring Plan can top this up automatically.</p>
+                        <p class="mt-1 text-xs text-muted">Total net rent (after costs) you've actually received on this property to date. Counts as profit in ROE. A recurring Plan ("Add net rent") can top this up automatically.</p>
                     </div>
                     <p class="text-xs text-muted">All figures above are for the whole property. If you only own part of it (e.g. split with a co-owner), everything below is scaled to your share.</p>
                     <p class="text-xs text-muted">
@@ -208,7 +208,7 @@
                         the debt shows under Liabilities (also scaled to your share). Invested equity is
                         <span class="font-semibold text-white" x-text="window.Finfolio.formatCurrency(equityInvested, manual.currency)"></span>
                         (just the down payment — the rest was financed; leave it blank if you paid the full price in cash).
-                        Return on that equity (ROE) is price appreciation plus rent collected to date — paying down the
+                        Return on that equity (ROE) is price appreciation plus net rent collected to date — paying down the
                         mortgage isn't counted as profit, since it comes out of your own pocket rather than the property's
                         own income. ROCE additionally counts a year of projected rent against the full purchase price —
                         the property's own return, financing aside.

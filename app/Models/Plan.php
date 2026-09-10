@@ -131,7 +131,7 @@ class Plan extends Model
         $verb = match (true) {
             $this->target === 'quantity' => $this->direction === 'in' ? 'Buy' : 'Sell',
             $this->target === 'debt' => $this->direction === 'in' ? 'Increase debt on' : 'Reduce debt on',
-            $this->target === 'rent' => $this->direction === 'in' ? 'Add rent to' : 'Deduct rent from',
+            $this->target === 'rent' => $this->direction === 'in' ? 'Add net rent to' : 'Deduct net rent from',
             default => $this->direction === 'in' ? 'Add value to' : 'Reduce value of',
         };
 
