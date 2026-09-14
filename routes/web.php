@@ -4,9 +4,9 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Api\AssetSearchController;
 use App\Http\Controllers\Api\ChartController;
-use App\Http\Controllers\DebtController;
 use App\Http\Controllers\HoldingController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LiabilitiesController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PortfolioActionController;
 use App\Http\Controllers\PositionsController;
@@ -31,7 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/wealth', fn () => redirect()->route('positions'))->name('wealth');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
-    Route::get('/debts', [DebtController::class, 'index'])->name('debts.index');
+    Route::get('/liabilities', [LiabilitiesController::class, 'index'])->name('liabilities.index');
+    Route::redirect('/debts', '/liabilities');
     Route::get('/discover', [SearchController::class, 'index'])->name('search');
 
     // Positions

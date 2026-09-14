@@ -111,24 +111,18 @@
                            value="{{ old('mortgage_down_payment', $num($holding->mortgage_down_payment)) }}" inputmode="decimal">
                 </div>
                 <div>
-                    <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage / debt</label>
-                    <input type="number" step="any" min="0" name="debt" class="field"
-                           value="{{ old('debt', $num($holding->debt)) }}" inputmode="decimal">
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Initial mortgage debt</label>
+                    <input type="number" step="any" min="0" name="initial_debt" class="field"
+                           value="{{ old('initial_debt', $num($holding->initial_debt ?? $holding->debt)) }}" inputmode="decimal">
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="mb-1.5 block text-sm font-semibold text-muted">Initial mortgage</label>
-                    <input type="number" step="any" min="0" name="initial_debt" class="field"
-                           value="{{ old('initial_debt', $num($holding->initial_debt ?? $holding->debt)) }}" inputmode="decimal">
-                    <p class="mt-1 text-xs text-muted">
-                        The mortgage as originally taken out. Fixed — paying it down (via
-                        <a href="{{ route('plans.create') }}" class="underline">Plan</a> or by editing "Mortgage / debt"
-                        above) never moves this. Powers the progress bar on
-                        <a href="{{ route('debts.index') }}" class="underline">Debts</a>.
-                    </p>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Current mortgage</label>
+                    <input type="number" step="any" min="0" name="debt" class="field"
+                           value="{{ old('debt', $num($holding->debt)) }}" inputmode="decimal">
                 </div>
-                @if ($holding->debt > 0)
+                @if ($holding->hasDebtHistory())
                     <div>
                         <label class="mb-1.5 block text-sm font-semibold text-muted">Paid off</label>
                         <div class="flex h-[46px] items-center text-sm font-semibold">{{ number_format($holding->debtProgressPct(), 1) }}%</div>
@@ -138,6 +132,12 @@
                     </div>
                 @endif
             </div>
+            <p class="text-xs text-muted">
+                Initial mortgage debt is what you originally borrowed — it's the fixed baseline "Current mortgage"
+                is compared against on <a href="{{ route('liabilities.index') }}" class="underline">Liabilities</a>. Paying
+                it down, whether via a <a href="{{ route('plans.create') }}" class="underline">Plan</a> or by editing
+                "Current mortgage" directly, only ever moves the latter.
+            </p>
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share (%)</label>

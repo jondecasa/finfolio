@@ -552,7 +552,7 @@ class PortfolioTest extends TestCase
         $this->assertEqualsWithDelta(46.67, $mortgages['progress_pct'], 0.01);   // 70k / 150k
     }
 
-    public function test_debts_page_lists_mortgages_with_a_progress_bar(): void
+    public function test_liabilities_page_lists_mortgages_with_a_progress_bar(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);
         $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
@@ -563,12 +563,15 @@ class PortfolioTest extends TestCase
             'debt' => 80000, 'initial_debt' => 100000,
         ]);
 
-        $this->get('/debts')->assertRedirect('/login');
+        $this->get('/liabilities')->assertRedirect('/login');
 
-        $this->actingAs($user)->get('/debts')
+        $this->actingAs($user)->get('/liabilities')
             ->assertOk()
             ->assertSee('Flat')
             ->assertSee('20.0%'); // paid off so far
+
+        // The old /debts URL still works, for anyone who bookmarked it.
+        $this->actingAs($user)->get('/debts')->assertRedirect('/liabilities');
     }
 
     public function test_creating_a_real_estate_position_sets_initial_debt_from_debt(): void

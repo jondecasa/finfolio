@@ -100,7 +100,7 @@
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-lg font-bold">Liabilities</h2>
                 @if ($overview['total_debt'] > 0)
-                    <a href="{{ route('debts.index') }}" class="text-sm text-muted hover:text-white">Progress →</a>
+                    <a href="{{ route('liabilities.index') }}" class="text-sm text-muted hover:text-white">Progress →</a>
                 @endif
             </div>
             <div class="card">

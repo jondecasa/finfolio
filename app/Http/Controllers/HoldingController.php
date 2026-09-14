@@ -53,10 +53,11 @@ class HoldingController extends Controller
                 'cost_currency' => $data['cost_currency'] ?: $request->user()->currency(),
                 'manual_value' => $isManual ? $data['manual_price'] : null,
                 'debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : 0,
-                // A brand-new position's debt IS the original mortgage — nothing
-                // has been paid down yet. This never moves again on its own; see
-                // Holding::initialDebtAmount().
-                'initial_debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : null,
+                // Defaults to the current mortgage — a brand-new loan with
+                // nothing paid down yet — but can be entered separately (e.g.
+                // adding a position for a mortgage already partway paid off).
+                // Fixed from here on; see Holding::initialDebtAmount().
+                'initial_debt' => $data['type'] === 'realestate' ? ($data['initial_debt'] ?? $data['debt'] ?? 0) : null,
                 'mortgage_down_payment' => $data['type'] === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
                 'ownership_pct' => $data['type'] === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
                 'monthly_rent' => $data['type'] === 'realestate' ? ($data['monthly_rent'] ?? null) : null,
@@ -179,6 +180,7 @@ class HoldingController extends Controller
             'cost_currency' => ['nullable', 'string', 'size:3'],
             'manual_price' => ['nullable', 'numeric', 'gte:0', Rule::requiredIf(fn () => in_array($request->input('type'), $manualTypes, true))],
             'debt' => ['nullable', 'numeric', 'gte:0'],
+            'initial_debt' => ['nullable', 'numeric', 'gte:0'],
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'monthly_rent' => ['nullable', 'numeric', 'gte:0'],

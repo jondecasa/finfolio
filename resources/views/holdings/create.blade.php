@@ -22,7 +22,7 @@
               category: @js($prefillType),
               nonSearchable: @js($nonSearchable),
               asset: @js($hasPrefill ? $prefill : null),
-              manual: { name: '', symbol: '', currency: @js($baseCurrency), price: '', purchase: '', debt: '', downPayment: '', ownershipPct: '100', monthlyRent: '', accumulatedRent: '' },
+              manual: { name: '', symbol: '', currency: @js($baseCurrency), price: '', purchase: '', debt: '', initialDebt: '', downPayment: '', ownershipPct: '100', monthlyRent: '', accumulatedRent: '' },
               avgCost: '{{ old('average_cost') }}',
               costCcy: @js(old('cost_currency', $baseCurrency)),
               qty: {{ old('quantity', 1) }},
@@ -53,6 +53,7 @@
               get outCurrency() { return this.searchable ? (this.asset && this.asset.currency || '') : this.manual.currency; },
               get outAvgCost() { return this.isRealEstate ? this.manual.purchase : (this.isCash ? '' : this.avgCost); },
               get outDebt() { return this.isRealEstate ? (this.manual.debt || '') : ''; },
+              get outInitialDebt() { return this.isRealEstate ? (this.manual.initialDebt || '') : ''; },
               get outDownPayment() { return this.isRealEstate ? (this.manual.downPayment || '') : ''; },
               get outOwnershipPct() { return this.isRealEstate ? (this.manual.ownershipPct || '100') : ''; },
               get outMonthlyRent() { return this.isRealEstate ? (this.manual.monthlyRent || '') : ''; },
@@ -183,19 +184,29 @@
                             <input type="number" step="any" min="0" class="field" x-model="manual.downPayment" inputmode="decimal" placeholder="0.00">
                         </div>
                         <div>
-                            <label class="mb-1.5 block text-sm font-semibold text-muted">Mortgage / debt <span class="text-muted/60">(optional)</span></label>
-                            <input type="number" step="any" min="0" class="field" x-model="manual.debt" inputmode="decimal" placeholder="0.00">
+                            <label class="mb-1.5 block text-sm font-semibold text-muted">Initial mortgage debt <span class="text-muted/60">(optional)</span></label>
+                            <input type="number" step="any" min="0" class="field" x-model="manual.initialDebt" inputmode="decimal" placeholder="0.00">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
+                            <label class="mb-1.5 block text-sm font-semibold text-muted">Current mortgage <span class="text-muted/60">(optional)</span></label>
+                            <input type="number" step="any" min="0" class="field" x-model="manual.debt" inputmode="decimal" placeholder="0.00">
+                        </div>
+                        <div>
                             <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share <span class="text-muted/60">(optional)</span></label>
                             <input type="number" step="any" min="0" max="100" class="field" x-model="manual.ownershipPct" inputmode="decimal" placeholder="100">
                         </div>
-                        <div>
-                            <label class="mb-1.5 block text-sm font-semibold text-muted">Monthly rent <span class="text-muted/60">(if rented out)</span></label>
-                            <input type="number" step="any" min="0" class="field" x-model="manual.monthlyRent" inputmode="decimal" placeholder="0.00">
-                        </div>
+                    </div>
+                    <p class="text-xs text-muted">
+                        Initial mortgage debt is what you originally borrowed — leave it blank to match the current
+                        mortgage (a brand-new loan, nothing paid down yet). "Reduce debt" plans and edits to "Current
+                        mortgage" never move it; it's the fixed baseline your paydown progress on
+                        <span class="text-white">Liabilities</span> is measured against.
+                    </p>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-semibold text-muted">Monthly rent <span class="text-muted/60">(if rented out)</span></label>
+                        <input type="number" step="any" min="0" class="field" x-model="manual.monthlyRent" inputmode="decimal" placeholder="0.00">
                     </div>
                     <div>
                         <label class="mb-1.5 block text-sm font-semibold text-muted">Accumulated net rent <span class="text-muted/60">(collected so far)</span></label>
@@ -252,6 +263,7 @@
         <input type="hidden" name="average_cost" :value="outAvgCost">
         <input type="hidden" name="cost_currency" :value="costCcy">
         <input type="hidden" name="debt" :value="outDebt">
+        <input type="hidden" name="initial_debt" :value="outInitialDebt">
         <input type="hidden" name="mortgage_down_payment" :value="outDownPayment">
         <input type="hidden" name="ownership_pct" :value="outOwnershipPct">
         <input type="hidden" name="monthly_rent" :value="outMonthlyRent">

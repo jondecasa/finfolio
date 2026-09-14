@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use App\Services\PortfolioService;
 use Illuminate\Http\Request;
 
-class DebtController extends Controller
+class LiabilitiesController extends Controller
 {
     public function __construct(protected PortfolioService $portfolio) {}
 
     public function index(Request $request)
     {
-        return view('debts.index', [
+        return view('liabilities.index', [
             'mortgages' => $this->portfolio->mortgages($request->user()),
         ]);
     }

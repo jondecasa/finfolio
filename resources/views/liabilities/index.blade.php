@@ -4,14 +4,14 @@
     $rows = $mortgages['rows'];
 @endphp
 
-<x-layouts.mobile heading="Debts" title="Finfolio · Debts">
+<x-layouts.mobile heading="Liabilities" title="Finfolio · Liabilities">
     <div class="lg:mx-auto lg:max-w-3xl">
         @if ($rows->isEmpty())
             <div class="app-pad">
                 <div class="card text-center">
-                    <p class="font-semibold">No debts tracked yet</p>
+                    <p class="font-semibold">No liabilities tracked yet</p>
                     <p class="mt-1 text-sm text-muted">
-                        Add a mortgage/debt to a <span class="text-white">Real estate</span> position and it'll show up
+                        Add a mortgage to a <span class="text-white">Real estate</span> position and it'll show up
                         here, with a progress bar tracking how much of it you've paid off.
                     </p>
                 </div>
@@ -20,11 +20,11 @@
             {{-- Overview --}}
             <div class="app-pad grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <div class="card-tight">
-                    <div class="text-xs text-muted">Initial debt</div>
+                    <div class="text-xs text-muted">Initial mortgage debt</div>
                     <x-money :amount="$mortgages['total_initial']" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
                 </div>
                 <div class="card-tight">
-                    <div class="text-xs text-muted">Remaining</div>
+                    <div class="text-xs text-muted">Current mortgage</div>
                     <x-money :amount="$mortgages['total_current']" :currency="$currency" :hidden="$hidden" class="mt-1 block text-xl font-bold" />
                 </div>
                 <div class="card-tight">
