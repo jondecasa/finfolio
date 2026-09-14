@@ -125,7 +125,7 @@ class Plan extends Model
     /** Human summary used in lists and headings. */
     public function label(): string
     {
-        $symbol = $this->holding?->asset?->symbol ?? 'position';
+        $name = $this->holding?->asset?->name ?? 'position';
         $freq = self::frequencyLabel($this->frequency);
 
         $verb = match (true) {
@@ -141,6 +141,6 @@ class Plan extends Model
             default => Money::format($this->amount, $this->currency ?? 'EUR'),
         };
 
-        return "{$verb} {$symbol} · {$qty} · {$freq}";
+        return "{$verb} {$name} · {$qty} · {$freq}";
     }
 }
