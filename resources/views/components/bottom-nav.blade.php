@@ -4,7 +4,7 @@
         ['route' => 'analytics',  'label' => 'Analytics', 'icon' => 'M12 3a9 9 0 1 0 9 9h-9V3Z'],
         ['route' => 'positions',  'match' => ['positions', 'holdings.*'], 'label' => 'Positions', 'icon' => 'M4 18 10 12l4 3 6-8M4 6v12'],
         ['route' => 'plans.index', 'match' => 'plans.*', 'label' => 'Plans', 'icon' => 'M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3'],
-        ['route' => 'search',     'label' => 'Search',    'icon' => 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm10 17-5-5'],
+        ['route' => 'liabilities.index', 'match' => 'liabilities.*', 'label' => 'Liabilities', 'icon' => 'M4 19h16M6 15v4M10 11v8M14 7v12M18 4v15'],
     ];
 @endphp
 <nav class="bottom-nav">
