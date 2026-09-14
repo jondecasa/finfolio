@@ -49,6 +49,12 @@ class PortfolioService
         return $this->fx->convert($holding->debtAmount(), $holding->asset->currency ?? 'USD', $base);
     }
 
+    /** The mortgage as originally taken out, converted to base currency — see Holding::initialDebtAmount(). */
+    public function holdingInitialDebt(Holding $holding, string $base): float
+    {
+        return $this->fx->convert($holding->initialDebtAmount(), $holding->asset->currency ?? 'USD', $base);
+    }
+
     public function holdingInvested(Holding $holding, string $base): float
     {
         return $this->fx->convert($holding->costBasis(), $holding->costCurrency(), $base);
@@ -238,6 +244,46 @@ class PortfolioService
                 ];
             })->sortByDesc('value')->values(),
             'updated_at' => $holdings->max(fn ($h) => $h->asset->price_updated_at),
+        ];
+    }
+
+    /**
+     * Mortgages for the Debts screen: every real-estate holding that has (or
+     * ever had) a tracked debt, each with its paydown progress.
+     *
+     * @return array<string, mixed>
+     */
+    public function mortgages(User $user): array
+    {
+        $base = $this->baseCurrency($user);
+        $holdings = $this->holdings($user)->filter(fn (Holding $h) => $h->hasDebtHistory())->values();
+
+        $rows = $holdings->map(function (Holding $holding) use ($base) {
+            $initial = $this->holdingInitialDebt($holding, $base);
+            $current = $this->holdingDebt($holding, $base);
+            $paidOff = max(0.0, $initial - $current);
+
+            return [
+                'holding' => $holding,
+                'name' => $holding->asset->name,
+                'initial' => $initial,
+                'current' => $current,
+                'paid_off' => $paidOff,
+                'progress_pct' => $holding->debtProgressPct(),
+            ];
+        })->sortByDesc('current')->values();
+
+        $totalInitial = $rows->sum('initial');
+        $totalCurrent = $rows->sum('current');
+        $totalPaidOff = max(0.0, $totalInitial - $totalCurrent);
+
+        return [
+            'currency' => $base,
+            'rows' => $rows,
+            'total_initial' => $totalInitial,
+            'total_current' => $totalCurrent,
+            'total_paid_off' => $totalPaidOff,
+            'progress_pct' => $totalInitial > 0 ? max(0.0, min(100.0, $totalPaidOff / $totalInitial * 100)) : ($totalCurrent <= 0 ? 100.0 : 0.0),
         ];
     }
 

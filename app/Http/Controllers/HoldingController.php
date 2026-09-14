@@ -53,6 +53,10 @@ class HoldingController extends Controller
                 'cost_currency' => $data['cost_currency'] ?: $request->user()->currency(),
                 'manual_value' => $isManual ? $data['manual_price'] : null,
                 'debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : 0,
+                // A brand-new position's debt IS the original mortgage — nothing
+                // has been paid down yet. This never moves again on its own; see
+                // Holding::initialDebtAmount().
+                'initial_debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : null,
                 'mortgage_down_payment' => $data['type'] === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
                 'ownership_pct' => $data['type'] === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
                 'monthly_rent' => $data['type'] === 'realestate' ? ($data['monthly_rent'] ?? null) : null,
@@ -107,6 +111,7 @@ class HoldingController extends Controller
             'cost_currency' => ['nullable', 'string', 'size:3'],
             'manual_value' => [$isManual ? 'required' : 'nullable', 'numeric', 'gte:0'],
             'debt' => ['nullable', 'numeric', 'gte:0'],
+            'initial_debt' => ['nullable', 'numeric', 'gte:0'],
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],
             'ownership_pct' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'monthly_rent' => ['nullable', 'numeric', 'gte:0'],
@@ -125,6 +130,9 @@ class HoldingController extends Controller
             'cost_currency' => strtoupper($data['cost_currency'] ?? '') ?: $holding->costCurrency(),
             'manual_value' => $isManual ? $data['manual_value'] : null,
             'debt' => $isRealEstate ? ($data['debt'] ?? 0) : 0,
+            // Only moves if the user explicitly edits it — never re-derived from
+            // `debt`, or a paydown Plan's progress would reset itself.
+            'initial_debt' => $isRealEstate ? ($data['initial_debt'] ?? $holding->initial_debt) : null,
             'mortgage_down_payment' => $isRealEstate ? ($data['mortgage_down_payment'] ?? null) : null,
             'ownership_pct' => $isRealEstate ? ($data['ownership_pct'] ?? 100) : 100,
             'monthly_rent' => $isRealEstate ? ($data['monthly_rent'] ?? null) : null,

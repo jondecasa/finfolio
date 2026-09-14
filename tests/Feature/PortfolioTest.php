@@ -477,6 +477,162 @@ class PortfolioTest extends TestCase
         $this->assertDatabaseHas('assets', ['id' => $fund->id, 'name' => 'iShares Core MSCI World']);
     }
 
+    public function test_debt_progress_tracks_the_original_mortgage_not_the_current_debt(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 200000, 'manual_value' => 200000,
+            'debt' => 80000, 'initial_debt' => 100000,
+        ]);
+
+        $this->assertTrue($holding->hasDebtHistory());
+        $this->assertEqualsWithDelta(100000, $holding->initialDebtAmount(), 0.01);
+        $this->assertEqualsWithDelta(20000, $holding->debtPaidOff(), 0.01); // 100k - 80k
+        $this->assertEqualsWithDelta(20, $holding->debtProgressPct(), 0.01); // 20k / 100k
+
+        // Fully paid off → 100%, even though initial_debt is still 100k.
+        $holding->debt = 0;
+        $this->assertEqualsWithDelta(100000, $holding->debtPaidOff(), 0.01);
+        $this->assertEqualsWithDelta(100, $holding->debtProgressPct(), 0.01);
+
+        // A holding with debt but no initial_debt on record falls back to the
+        // current debt (0% progress) rather than blowing up on a null.
+        $legacy = Holding::create([
+            'account_id' => $account->id,
+            'asset_id' => Asset::create(['type' => 'realestate', 'symbol' => 'FLAT5', 'name' => 'Flat 5', 'currency' => 'EUR'])->id,
+            'quantity' => 1, 'average_cost' => 50000, 'manual_value' => 50000, 'debt' => 30000,
+        ]);
+        $this->assertEqualsWithDelta(30000, $legacy->initialDebtAmount(), 0.01);
+        $this->assertEqualsWithDelta(0, $legacy->debtProgressPct(), 0.01);
+
+        // A holding that never had any debt doesn't show up as debt history.
+        $none = Holding::create([
+            'account_id' => $account->id,
+            'asset_id' => Asset::create(['type' => 'realestate', 'symbol' => 'FLAT6', 'name' => 'Flat 6', 'currency' => 'EUR'])->id,
+            'quantity' => 1, 'average_cost' => 10000, 'manual_value' => 10000,
+        ]);
+        $this->assertFalse($none->hasDebtHistory());
+    }
+
+    public function test_mortgages_aggregate_sums_progress_across_real_estate_holdings(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+
+        $flatA = Asset::create(['type' => 'realestate', 'symbol' => 'FLATA', 'name' => 'Flat A', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flatA->id,
+            'quantity' => 1, 'average_cost' => 200000, 'manual_value' => 200000,
+            'debt' => 80000, 'initial_debt' => 100000,
+        ]);
+
+        $flatB = Asset::create(['type' => 'realestate', 'symbol' => 'FLATB', 'name' => 'Flat B (paid off)', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flatB->id,
+            'quantity' => 1, 'average_cost' => 50000, 'manual_value' => 50000,
+            'debt' => 0, 'initial_debt' => 50000,
+        ]);
+
+        // A cash-bought flat (no debt ever) shouldn't appear on the Debts page.
+        $flatC = Asset::create(['type' => 'realestate', 'symbol' => 'FLATC', 'name' => 'Flat C', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flatC->id,
+            'quantity' => 1, 'average_cost' => 90000, 'manual_value' => 90000,
+        ]);
+
+        $mortgages = app(PortfolioService::class)->mortgages($user);
+
+        $this->assertCount(2, $mortgages['rows']);
+        $this->assertEqualsWithDelta(150000, $mortgages['total_initial'], 0.01); // 100k + 50k
+        $this->assertEqualsWithDelta(80000, $mortgages['total_current'], 0.01);  // 80k + 0
+        $this->assertEqualsWithDelta(70000, $mortgages['total_paid_off'], 0.01); // 20k + 50k
+        $this->assertEqualsWithDelta(46.67, $mortgages['progress_pct'], 0.01);   // 70k / 150k
+    }
+
+    public function test_debts_page_lists_mortgages_with_a_progress_bar(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 200000, 'manual_value' => 200000,
+            'debt' => 80000, 'initial_debt' => 100000,
+        ]);
+
+        $this->get('/debts')->assertRedirect('/login');
+
+        $this->actingAs($user)->get('/debts')
+            ->assertOk()
+            ->assertSee('Flat')
+            ->assertSee('20.0%'); // paid off so far
+    }
+
+    public function test_creating_a_real_estate_position_sets_initial_debt_from_debt(): void
+    {
+        $user = $this->makePortfolio();
+        $account = $user->accounts()->first();
+
+        $this->actingAs($user)->post('/positions', [
+            'account_id' => $account->id,
+            'type' => 'realestate',
+            'symbol' => 'NEWFLAT',
+            'name' => 'New Flat',
+            'currency' => 'EUR',
+            'quantity' => 1,
+            'average_cost' => 150000,
+            'manual_price' => 150000,
+            'debt' => 90000,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('holdings', ['debt' => 90000, 'initial_debt' => 90000]);
+    }
+
+    public function test_editing_debt_does_not_move_initial_debt_but_editing_initial_debt_does(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 200000, 'manual_value' => 200000,
+            'debt' => 100000, 'initial_debt' => 100000,
+        ]);
+
+        // Manually lowering "Mortgage / debt" (as opposed to a Plan) must not
+        // touch initial_debt — the progress bar has to keep its baseline.
+        $this->actingAs($user)->put(route('holdings.update', $holding), [
+            'account_id' => $account->id,
+            'name' => 'Flat',
+            'quantity' => 1,
+            'average_cost' => 200000,
+            'manual_value' => 200000,
+            'debt' => 70000,
+        ])->assertRedirect();
+
+        $holding->refresh();
+        $this->assertEqualsWithDelta(70000, $holding->debt, 0.01);
+        $this->assertEqualsWithDelta(100000, $holding->initial_debt, 0.01);
+        $this->assertEqualsWithDelta(30, $holding->debtProgressPct(), 0.01);
+
+        // Explicitly correcting the initial mortgage amount does move it.
+        $this->actingAs($user)->put(route('holdings.update', $holding), [
+            'account_id' => $account->id,
+            'name' => 'Flat',
+            'quantity' => 1,
+            'average_cost' => 200000,
+            'manual_value' => 200000,
+            'debt' => 70000,
+            'initial_debt' => 120000,
+        ])->assertRedirect();
+
+        $holding->refresh();
+        $this->assertEqualsWithDelta(120000, $holding->initial_debt, 0.01);
+    }
+
     public function test_real_estate_ownership_share_scales_every_figure(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);

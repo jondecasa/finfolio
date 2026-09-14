@@ -97,7 +97,12 @@
 
         {{-- Liabilities --}}
         <div class="app-pad mt-6 lg:mt-0">
-            <h2 class="mb-3 text-lg font-bold">Liabilities</h2>
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-lg font-bold">Liabilities</h2>
+                @if ($overview['total_debt'] > 0)
+                    <a href="{{ route('debts.index') }}" class="text-sm text-muted hover:text-white">Progress →</a>
+                @endif
+            </div>
             <div class="card">
                 @if ($overview['total_debt'] > 0)
                     <div class="flex items-center justify-between">

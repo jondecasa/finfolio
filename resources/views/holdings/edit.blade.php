@@ -118,6 +118,28 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Initial mortgage</label>
+                    <input type="number" step="any" min="0" name="initial_debt" class="field"
+                           value="{{ old('initial_debt', $num($holding->initial_debt ?? $holding->debt)) }}" inputmode="decimal">
+                    <p class="mt-1 text-xs text-muted">
+                        The mortgage as originally taken out. Fixed — paying it down (via
+                        <a href="{{ route('plans.create') }}" class="underline">Plan</a> or by editing "Mortgage / debt"
+                        above) never moves this. Powers the progress bar on
+                        <a href="{{ route('debts.index') }}" class="underline">Debts</a>.
+                    </p>
+                </div>
+                @if ($holding->debt > 0)
+                    <div>
+                        <label class="mb-1.5 block text-sm font-semibold text-muted">Paid off</label>
+                        <div class="flex h-[46px] items-center text-sm font-semibold">{{ number_format($holding->debtProgressPct(), 1) }}%</div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-ink-700">
+                            <div class="h-full rounded-full bg-accent" style="width: {{ number_format($holding->debtProgressPct(), 2) }}%"></div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Your ownership share (%)</label>
                     <input type="number" step="any" min="0" max="100" name="ownership_pct" class="field"
                            value="{{ old('ownership_pct', $num($holding->ownership_pct)) }}" inputmode="decimal" placeholder="100">

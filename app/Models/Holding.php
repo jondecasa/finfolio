@@ -24,6 +24,7 @@ class Holding extends Model
         'cost_currency',
         'manual_value',
         'debt',
+        'initial_debt',
         'mortgage_down_payment',
         'ownership_pct',
         'monthly_rent',
@@ -38,6 +39,7 @@ class Holding extends Model
             'average_cost' => 'float',
             'manual_value' => 'float',
             'debt' => 'float',
+            'initial_debt' => 'float',
             'mortgage_down_payment' => 'float',
             'ownership_pct' => 'float',
             'monthly_rent' => 'float',
@@ -112,6 +114,44 @@ class Holding extends Model
     public function debtAmount(): float
     {
         return (float) $this->debt * $this->ownershipFraction();
+    }
+
+    /** Whether this holding has ever carried a mortgage worth tracking on the Debts page. */
+    public function hasDebtHistory(): bool
+    {
+        return $this->asset->type === 'realestate'
+            && ((float) ($this->initial_debt ?? 0) > 0 || (float) ($this->debt ?? 0) > 0);
+    }
+
+    /**
+     * The mortgage as originally taken out, scaled to the user's ownership
+     * share. Fixed once set — a debt-paydown Plan only ever moves `debt`,
+     * never this. Falls back to the current debt for a holding that never had
+     * one recorded (so it starts the progress bar at 0% rather than crashing).
+     */
+    public function initialDebtAmount(): float
+    {
+        $base = $this->initial_debt !== null ? (float) $this->initial_debt : (float) $this->debt;
+
+        return $base * $this->ownershipFraction();
+    }
+
+    /** How much of the original mortgage has been paid off, never negative. */
+    public function debtPaidOff(): float
+    {
+        return max(0.0, $this->initialDebtAmount() - $this->debtAmount());
+    }
+
+    /** 0–100: how far the mortgage is paid down. 0 debt is always 100%, regardless of the initial amount. */
+    public function debtProgressPct(): float
+    {
+        $initial = $this->initialDebtAmount();
+
+        if ($initial <= 0) {
+            return $this->debtAmount() <= 0 ? 100.0 : 0.0;
+        }
+
+        return max(0.0, min(100.0, $this->debtPaidOff() / $initial * 100));
     }
 
     /** Net value that counts towards net worth: gross value minus debt. */
