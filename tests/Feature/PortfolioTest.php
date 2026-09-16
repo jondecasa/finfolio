@@ -366,6 +366,28 @@ class PortfolioTest extends TestCase
         $this->assertEqualsWithDelta(75, $holding->accumulatedRent(), 0.01); // 150 * 50%
     }
 
+    public function test_gain_pct_counts_accumulated_rent_alongside_appreciation_over_full_price(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'C/ Madera 9', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 249000, 'manual_value' => 235000,
+            'mortgage_down_payment' => 66000, 'accumulated_rent' => 6000,
+        ]);
+
+        $portfolio = app(PortfolioService::class);
+
+        // Plusvalía is -14,000 (235,000 - 249,000). Counting only that against
+        // the purchase price gives -5.62%, but rent actually collected is real
+        // profit too: -14,000 + 6,000 = -8,000 over the full 249,000 price is
+        // -3.21% ("ROA"). ROE (over the €66,000 down payment) is unaffected
+        // by this fix and stays at -12.12%.
+        $this->assertEqualsWithDelta(-3.21, $portfolio->holdingGainPct($holding, 'EUR'), 0.01);
+        $this->assertEqualsWithDelta(-12.12, $portfolio->holdingEquityGainPct($holding, 'EUR'), 0.01);
+    }
+
     public function test_positions_screen_shows_roce_only_when_rented(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);

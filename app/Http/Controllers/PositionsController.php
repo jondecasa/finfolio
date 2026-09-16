@@ -33,7 +33,7 @@ class PositionsController extends Controller
                 'holding' => $h,
                 'value' => $value,
                 'invested' => $invested,
-                'gain' => $this->portfolio->holdingGross($h, $base) - $invested,
+                'gain' => $this->portfolio->holdingGross($h, $base) - $invested + $this->portfolio->holdingAccumulatedRent($h, $base),
                 'gain_pct' => $this->portfolio->holdingGainPct($h, $base),
                 'equity_invested' => $equityInvested,
                 'equity_gain_pct' => $this->portfolio->holdingEquityGainPct($h, $base),
