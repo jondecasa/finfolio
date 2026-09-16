@@ -220,6 +220,26 @@ class PlanTest extends TestCase
         $this->assertEqualsWithDelta(0, $holding->debt, 1e-6);
     }
 
+    public function test_standalone_debt_reduction_plan_lowers_debt(): void
+    {
+        [$user, $account] = $this->userWithAccount('EUR');
+        $loan = Asset::create(['type' => 'debt', 'symbol' => 'VACATION-LOAN', 'name' => 'Vacation loan', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $loan->id,
+            'quantity' => 1, 'manual_value' => 0, 'debt' => 10000, 'initial_debt' => 10000,
+        ]);
+
+        $plan = $this->plan($holding, [
+            'target' => 'debt', 'direction' => 'out', 'amount_kind' => 'cash', 'amount' => 250, 'currency' => 'EUR',
+        ]);
+
+        $this->artisan('plans:run', ['--date' => CarbonImmutable::today()->toDateString()]);
+        $holding->refresh();
+        $this->assertEqualsWithDelta(9750, $holding->debt, 1e-6);
+        $this->assertEqualsWithDelta(10000, $holding->initialDebtAmount(), 1e-6); // unchanged baseline
+        $this->assertEqualsWithDelta(-9750, $holding->netValue(), 1e-6); // pure liability, no market value
+    }
+
     public function test_rent_plan_tops_up_accumulated_rent(): void
     {
         [$user, $account] = $this->userWithAccount('EUR');

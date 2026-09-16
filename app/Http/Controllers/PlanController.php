@@ -161,6 +161,7 @@ class PlanController extends Controller
             'type' => $h->typeLabel(),
             'priced' => in_array($h->asset->type, Asset::PRICED_TYPES, true),
             'realestate' => $h->asset->type === 'realestate',
+            'plain_debt' => $h->asset->type === 'debt',
             'cost_currency' => strtoupper($h->costCurrency()),
             'quantity' => (float) $h->quantity,
             'debt' => (float) $h->debt,
@@ -224,6 +225,7 @@ class PlanController extends Controller
         $allowed = match (true) {
             in_array($type, Asset::PRICED_TYPES, true) => ['quantity'],
             $type === 'realestate' => ['debt', 'value', 'rent'],
+            $type === 'debt' => ['debt'],
             default => ['value'], // cash, other
         };
 

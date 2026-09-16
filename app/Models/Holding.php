@@ -116,10 +116,10 @@ class Holding extends Model
         return (float) $this->debt * $this->ownershipFraction();
     }
 
-    /** Whether this holding has ever carried a mortgage worth tracking on the Debts page. */
+    /** Whether this holding has ever carried debt worth tracking on the Liabilities page (a mortgage or a standalone debt). */
     public function hasDebtHistory(): bool
     {
-        return $this->asset->type === 'realestate'
+        return in_array($this->asset->type, ['realestate', 'debt'], true)
             && ((float) ($this->initial_debt ?? 0) > 0 || (float) ($this->debt ?? 0) > 0);
     }
 

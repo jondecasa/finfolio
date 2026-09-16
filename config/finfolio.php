@@ -49,6 +49,7 @@ return [
         'realestate' => ['label' => 'Real estate', 'searchable' => false],
         'cash' => ['label' => 'Cash', 'searchable' => false],
         'other' => ['label' => 'Other', 'searchable' => false],
+        'debt' => ['label' => 'Debt', 'searchable' => false],
     ],
 
     'coingecko' => [

@@ -259,8 +259,9 @@ class PortfolioService
     }
 
     /**
-     * Mortgages for the Debts screen: every real-estate holding that has (or
-     * ever had) a tracked debt, each with its paydown progress.
+     * Liabilities for the Liabilities screen: every holding that has (or ever
+     * had) a tracked debt — a real-estate mortgage or a standalone debt not
+     * tied to any position — each with its paydown progress.
      *
      * @return array<string, mixed>
      */

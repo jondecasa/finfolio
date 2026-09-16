@@ -121,7 +121,7 @@
                     </div>
                 @else
                     <p class="text-center font-semibold">No liabilities</p>
-                    <p class="mt-1 text-center text-sm text-muted">A mortgage on a <span class="text-white">Real estate</span> position shows up here.</p>
+                    <p class="mt-1 text-center text-sm text-muted">A mortgage on a <span class="text-white">Real estate</span> position, or a standalone <span class="text-white">Debt</span>, shows up here.</p>
                 @endif
             </div>
         </div>

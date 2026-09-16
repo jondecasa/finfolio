@@ -35,6 +35,7 @@
               get selected() { return this.meta.find(m => String(m.id) === String(this.holdingId)) || null; },
               get isPriced() { return this.selected ? this.selected.priced : true; },
               get isRealEstate() { return this.selected ? this.selected.realestate : false; },
+              get isPlainDebt() { return this.selected ? this.selected.plain_debt : false; },
               get movements() {
                   if (this.isPriced) return [
                       { k: 'buy',  label: 'Buy',  t: 'quantity', d: 'in'  },
@@ -46,6 +47,10 @@
                       { k: 'debt_in',   label: 'Increase debt',  t: 'debt',  d: 'in'  },
                       { k: 'value_in',  label: 'Increase value', t: 'value', d: 'in'  },
                       { k: 'value_out', label: 'Decrease value', t: 'value', d: 'out' },
+                  ];
+                  if (this.isPlainDebt) return [
+                      { k: 'debt_out', label: 'Reduce debt',   t: 'debt', d: 'out' },
+                      { k: 'debt_in',  label: 'Increase debt', t: 'debt', d: 'in'  },
                   ];
                   return [
                       { k: 'value_in',  label: 'Add money',    t: 'value', d: 'in'  },
@@ -88,7 +93,7 @@
                         @foreach ($group as $h)
                             <option value="{{ $h->id }}" @selected((string) old('holding_id', $plan->holding_id ?? '') === (string) $h->id)>
                                 {{ $h->asset->symbol }} — {{ $h->asset->name }}
-                                @if ($h->asset->type === 'realestate')
+                                @if (in_array($h->asset->type, ['realestate', 'debt'], true))
                                     ({{ \App\Support\Money::format((float) $h->debt, $h->asset->currency ?? 'EUR') }} debt)
                                 @else
                                     ({{ rtrim(rtrim(number_format((float) $h->quantity, 8, '.', ''), '0'), '.') }} units)

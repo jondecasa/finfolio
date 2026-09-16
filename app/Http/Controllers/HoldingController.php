@@ -44,6 +44,7 @@ class HoldingController extends Controller
         ]);
 
         $isManual = in_array($data['type'], Asset::MANUAL_TYPES, true);
+        $isDebtType = in_array($data['type'], ['realestate', 'debt'], true);
 
         $holding = Holding::updateOrCreate(
             ['account_id' => $account->id, 'asset_id' => $asset->id],
@@ -51,13 +52,15 @@ class HoldingController extends Controller
                 'quantity' => $data['quantity'],
                 'average_cost' => $data['average_cost'] ?? null,
                 'cost_currency' => $data['cost_currency'] ?: $request->user()->currency(),
-                'manual_value' => $isManual ? $data['manual_price'] : null,
-                'debt' => $data['type'] === 'realestate' ? ($data['debt'] ?? 0) : 0,
-                // Defaults to the current mortgage — a brand-new loan with
-                // nothing paid down yet — but can be entered separately (e.g.
-                // adding a position for a mortgage already partway paid off).
-                // Fixed from here on; see Holding::initialDebtAmount().
-                'initial_debt' => $data['type'] === 'realestate' ? ($data['initial_debt'] ?? $data['debt'] ?? 0) : null,
+                // A standalone debt has no market value of its own — it's pure
+                // liability, never a position with a price.
+                'manual_value' => $data['type'] === 'debt' ? 0 : ($isManual ? $data['manual_price'] : null),
+                'debt' => $isDebtType ? ($data['debt'] ?? 0) : 0,
+                // Defaults to the current debt — nothing paid down yet — but
+                // can be entered separately (e.g. adding a mortgage or loan
+                // already partway paid off). Fixed from here on; see
+                // Holding::initialDebtAmount().
+                'initial_debt' => $isDebtType ? ($data['initial_debt'] ?? $data['debt'] ?? 0) : null,
                 'mortgage_down_payment' => $data['type'] === 'realestate' ? ($data['mortgage_down_payment'] ?? null) : null,
                 'ownership_pct' => $data['type'] === 'realestate' ? ($data['ownership_pct'] ?? 100) : 100,
                 'monthly_rent' => $data['type'] === 'realestate' ? ($data['monthly_rent'] ?? null) : null,
@@ -99,6 +102,7 @@ class HoldingController extends Controller
 
         $isManual = in_array($holding->asset->type, Asset::MANUAL_TYPES, true);
         $isRealEstate = $holding->asset->type === 'realestate';
+        $isDebtType = in_array($holding->asset->type, ['realestate', 'debt'], true);
 
         $data = $request->validate([
             'account_id' => ['required', Rule::exists('accounts', 'id')->where('user_id', $request->user()->id)],
@@ -130,10 +134,10 @@ class HoldingController extends Controller
             'average_cost' => $data['average_cost'] ?? null,
             'cost_currency' => strtoupper($data['cost_currency'] ?? '') ?: $holding->costCurrency(),
             'manual_value' => $isManual ? $data['manual_value'] : null,
-            'debt' => $isRealEstate ? ($data['debt'] ?? 0) : 0,
+            'debt' => $isDebtType ? ($data['debt'] ?? 0) : 0,
             // Only moves if the user explicitly edits it — never re-derived from
             // `debt`, or a paydown Plan's progress would reset itself.
-            'initial_debt' => $isRealEstate ? ($data['initial_debt'] ?? $holding->initial_debt) : null,
+            'initial_debt' => $isDebtType ? ($data['initial_debt'] ?? $holding->initial_debt) : null,
             'mortgage_down_payment' => $isRealEstate ? ($data['mortgage_down_payment'] ?? null) : null,
             'ownership_pct' => $isRealEstate ? ($data['ownership_pct'] ?? 100) : 100,
             'monthly_rent' => $isRealEstate ? ($data['monthly_rent'] ?? null) : null,
@@ -168,7 +172,7 @@ class HoldingController extends Controller
 
         $data = $request->validate([
             'account_id' => ['required', Rule::exists('accounts', 'id')->where('user_id', $request->user()->id)],
-            'type' => ['required', Rule::in(['crypto', 'stock', 'etf', 'index', 'fund', 'commodity', 'realestate', 'cash', 'other'])],
+            'type' => ['required', Rule::in(['crypto', 'stock', 'etf', 'index', 'fund', 'commodity', 'realestate', 'cash', 'other', 'debt'])],
             'symbol' => ['required', 'string', 'max:32'],
             'name' => ['nullable', 'string', 'max:120'],
             'exchange' => ['nullable', 'string', 'max:60'],
@@ -178,7 +182,8 @@ class HoldingController extends Controller
             'quantity' => ['required', 'numeric', 'gt:0'],
             'average_cost' => ['nullable', 'numeric', 'gte:0'],
             'cost_currency' => ['nullable', 'string', 'size:3'],
-            'manual_price' => ['nullable', 'numeric', 'gte:0', Rule::requiredIf(fn () => in_array($request->input('type'), $manualTypes, true))],
+            // A standalone debt has no market value/price of its own — see 'manual_value' below.
+            'manual_price' => ['nullable', 'numeric', 'gte:0', Rule::requiredIf(fn () => in_array($request->input('type'), $manualTypes, true) && $request->input('type') !== 'debt')],
             'debt' => ['nullable', 'numeric', 'gte:0'],
             'initial_debt' => ['nullable', 'numeric', 'gte:0'],
             'mortgage_down_payment' => ['nullable', 'numeric', 'gte:0'],

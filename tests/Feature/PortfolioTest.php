@@ -596,6 +596,37 @@ class PortfolioTest extends TestCase
         $this->actingAs($user)->get('/debts')->assertRedirect('/liabilities');
     }
 
+    public function test_creating_a_standalone_debt_position_not_tied_to_any_asset(): void
+    {
+        $user = $this->makePortfolio();
+        $account = $user->accounts()->first();
+
+        $this->actingAs($user)->post('/positions', [
+            'account_id' => $account->id,
+            'type' => 'debt',
+            'symbol' => 'VACATION-LOAN',
+            'name' => 'Vacation loan',
+            'currency' => 'EUR',
+            'quantity' => 1,
+            'manual_price' => 0,
+            'debt' => 10000,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('holdings', ['debt' => 10000, 'initial_debt' => 10000, 'manual_value' => 0]);
+
+        $holding = Holding::whereHas('asset', fn ($q) => $q->where('symbol', 'VACATION-LOAN'))->first();
+        $this->assertTrue($holding->hasDebtHistory());
+        $this->assertEqualsWithDelta(-10000, $holding->netValue(), 0.01); // pure liability, no market value
+
+        $portfolio = app(PortfolioService::class);
+        $mortgages = $portfolio->mortgages($user);
+        $this->assertTrue($mortgages['rows']->contains(fn ($row) => $row['name'] === 'Vacation loan'));
+
+        $this->actingAs($user)->get('/liabilities')
+            ->assertOk()
+            ->assertSee('Vacation loan');
+    }
+
     public function test_creating_a_real_estate_position_sets_initial_debt_from_debt(): void
     {
         $user = $this->makePortfolio();

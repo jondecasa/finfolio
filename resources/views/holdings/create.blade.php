@@ -34,10 +34,12 @@
               get searchable() { return !this.nonSearchable.includes(this.category); },
               get isCash() { return this.category === 'cash'; },
               get isRealEstate() { return this.category === 'realestate'; },
-              get unitless() { return this.isCash || this.isRealEstate; },
+              get isDebt() { return this.category === 'debt'; },
+              get unitless() { return this.isCash || this.isRealEstate || this.isDebt; },
               get ready() {
                   if (this.searchable) return !!this.asset;
                   if (this.isCash) return this.manual.price !== '' && Number(this.manual.price) > 0;
+                  if (this.isDebt) return this.manual.name.trim() && this.manual.debt !== '';
                   return this.manual.name.trim() && this.manual.price !== '';
               },
               get outSymbol() {
@@ -51,9 +53,10 @@
                   return this.manual.name.trim();
               },
               get outCurrency() { return this.searchable ? (this.asset && this.asset.currency || '') : this.manual.currency; },
-              get outAvgCost() { return this.isRealEstate ? this.manual.purchase : (this.isCash ? '' : this.avgCost); },
-              get outDebt() { return this.isRealEstate ? (this.manual.debt || '') : ''; },
-              get outInitialDebt() { return this.isRealEstate ? (this.manual.initialDebt || '') : ''; },
+              get outAvgCost() { return this.isRealEstate ? this.manual.purchase : (this.isCash || this.isDebt ? '' : this.avgCost); },
+              get outManualPrice() { return this.isDebt ? '0' : (this.searchable ? '' : this.manual.price); },
+              get outDebt() { return (this.isRealEstate || this.isDebt) ? (this.manual.debt || '') : ''; },
+              get outInitialDebt() { return (this.isRealEstate || this.isDebt) ? (this.manual.initialDebt || '') : ''; },
               get outDownPayment() { return this.isRealEstate ? (this.manual.downPayment || '') : ''; },
               get outOwnershipPct() { return this.isRealEstate ? (this.manual.ownershipPct || '100') : ''; },
               get outMonthlyRent() { return this.isRealEstate ? (this.manual.monthlyRent || '') : ''; },
@@ -143,12 +146,12 @@
             </div>
         </div>
 
-        {{-- Manual entry (Real estate, Cash, Other) --}}
+        {{-- Manual entry (Real estate, Cash, Other, Debt) --}}
         <div x-show="!searchable" x-cloak class="space-y-4">
             <div x-show="!isCash">
                 <label class="mb-1.5 block text-sm font-semibold text-muted">Name</label>
                 <input type="text" class="field" x-model="manual.name"
-                       :placeholder="isRealEstate ? 'e.g. Flat in Madrid' : 'e.g. Grandma\'s gold coins'" maxlength="120">
+                       :placeholder="isRealEstate ? 'e.g. Flat in Madrid' : (isDebt ? 'e.g. Vacation loan' : 'e.g. Grandma\'s gold coins')" maxlength="120">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div x-show="!unitless">
@@ -227,8 +230,32 @@
                 </div>
             </template>
 
+            {{-- Debt: standalone liability, not tied to any position --}}
+            <template x-if="isDebt">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-semibold text-muted">Current amount owed</label>
+                            <input type="number" step="any" min="0" class="field" x-model="manual.debt" inputmode="decimal" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-semibold text-muted">Initial amount <span class="text-muted/60">(optional)</span></label>
+                            <input type="number" step="any" min="0" class="field" x-model="manual.initialDebt" inputmode="decimal" placeholder="0.00">
+                        </div>
+                    </div>
+                    <p class="text-xs text-muted">
+                        A debt on its own, not tied to any property or position — a personal loan, a credit card
+                        balance, money owed to family, etc. It counts against your net worth and shows up on
+                        <span class="text-white">Liabilities</span> with a paydown progress bar. Leave "Initial
+                        amount" blank to match the current amount (nothing paid down yet) — a "Reduce debt"
+                        <span class="text-white">Plan</span> or editing the amount later only ever moves the
+                        current amount, never this baseline.
+                    </p>
+                </div>
+            </template>
+
             {{-- Cash / Other: single value field --}}
-            <div x-show="!isRealEstate">
+            <div x-show="!isRealEstate && !isDebt">
                 <label class="mb-1.5 block text-sm font-semibold text-muted"
                        x-text="isCash ? 'Amount' : 'Current value per unit'"></label>
                 <input type="number" step="any" min="0" class="field" x-model="manual.price" inputmode="decimal" placeholder="0.00">
@@ -282,7 +309,7 @@
         <input type="hidden" name="provider_id" :value="(searchable && asset && asset.provider_id) || ''">
         <input type="hidden" name="exchange" :value="(searchable && asset && asset.exchange) || ''">
         <input type="hidden" name="logo_url" :value="(searchable && asset && asset.logo_url) || ''">
-        <input type="hidden" name="manual_price" :value="searchable ? '' : manual.price">
+        <input type="hidden" name="manual_price" :value="outManualPrice">
 
         <button class="btn-primary w-full" :disabled="!ready" :class="!ready ? 'opacity-40 pointer-events-none' : ''">Add position</button>
     </form>

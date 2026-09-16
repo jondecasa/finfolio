@@ -28,9 +28,9 @@
                     {{ $asset->symbol }} · {{ $holding->typeLabel() }}
                     @if ($holding->grossValue() > 0)
                         · {{ \App\Support\Money::format($holding->grossValue(), $currency) }}
-                        @if ($holding->debtAmount() > 0)
-                            <span class="value-down">− {{ \App\Support\Money::format($holding->debtAmount(), $currency) }} debt</span>
-                        @endif
+                    @endif
+                    @if ($holding->debtAmount() > 0)
+                        <span class="value-down">− {{ \App\Support\Money::format($holding->debtAmount(), $currency) }} debt</span>
                     @endif
                 </div>
                 <div class="mt-1 text-xs">
@@ -173,6 +173,37 @@
                 </p>
             </div>
             <input type="hidden" name="quantity" value="{{ $num($holding->quantity) ?: 1 }}">
+
+        @elseif ($asset->type === 'debt')
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Current amount owed</label>
+                    <input type="number" step="any" min="0" name="debt" class="field"
+                           value="{{ old('debt', $num($holding->debt)) }}" inputmode="decimal">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Initial amount</label>
+                    <input type="number" step="any" min="0" name="initial_debt" class="field"
+                           value="{{ old('initial_debt', $num($holding->initial_debt ?? $holding->debt)) }}" inputmode="decimal">
+                </div>
+            </div>
+            @if ($holding->hasDebtHistory())
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-muted">Paid off</label>
+                    <div class="mb-1 text-sm font-semibold">{{ number_format($holding->debtProgressPct(), 1) }}%</div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-ink-700">
+                        <div class="h-full rounded-full bg-accent" style="width: {{ number_format($holding->debtProgressPct(), 2) }}%"></div>
+                    </div>
+                </div>
+            @endif
+            <p class="text-xs text-muted">
+                A standalone debt, not tied to any property or position — counted against your net worth and
+                tracked on <a href="{{ route('liabilities.index') }}" class="underline">Liabilities</a>. "Initial
+                amount" is the fixed baseline paydown progress is measured against — it never moves when you reduce
+                "Current amount owed", whether by hand or via a <a href="{{ route('plans.create') }}" class="underline">Plan</a>.
+            </p>
+            <input type="hidden" name="manual_value" value="0">
+            <input type="hidden" name="quantity" value="1">
 
         @elseif ($asset->type === 'cash')
             <div>

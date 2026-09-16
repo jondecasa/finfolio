@@ -10,21 +10,22 @@ class Asset extends Model
 {
     use HasFactory;
 
-    public const TYPES = ['crypto', 'stock', 'etf', 'index', 'fund', 'commodity', 'realestate', 'cash', 'other'];
+    public const TYPES = ['crypto', 'stock', 'etf', 'index', 'fund', 'commodity', 'realestate', 'cash', 'other', 'debt'];
 
     /** Types whose price is fetched from a provider (everything else is manual). */
     public const PRICED_TYPES = ['crypto', 'stock', 'etf', 'index', 'fund', 'commodity'];
 
     /** Manually-valued types: no search, no live price. */
-    public const MANUAL_TYPES = ['realestate', 'other', 'cash'];
+    public const MANUAL_TYPES = ['realestate', 'other', 'cash', 'debt'];
 
     /**
      * Manual types with a user-editable, free-text name (real estate, other
-     * items) — as opposed to cash, whose name is always auto-generated from
-     * its currency. Each one gets its own dedicated Asset row (never reused
-     * across holdings) so renaming one can never rename another user's.
+     * items, standalone debts) — as opposed to cash, whose name is always
+     * auto-generated from its currency. Each one gets its own dedicated
+     * Asset row (never reused across holdings) so renaming one can never
+     * rename another user's.
      */
-    public const NAMEABLE_MANUAL_TYPES = ['realestate', 'other'];
+    public const NAMEABLE_MANUAL_TYPES = ['realestate', 'other', 'debt'];
 
     public function typeLabel(): string
     {
