@@ -134,10 +134,14 @@ class HoldingController extends Controller
             'average_cost' => $data['average_cost'] ?? null,
             'cost_currency' => strtoupper($data['cost_currency'] ?? '') ?: $holding->costCurrency(),
             'manual_value' => $isManual ? $data['manual_value'] : null,
+            // A blank field always means the same thing regardless of which one it
+            // is: exactly what was submitted, never a silent fallback to whatever
+            // was there before. `debt` can't be null in the database, so blank
+            // resolves to 0; `initial_debt` blank matches the "Current mortgage"
+            // being saved in this same request (a brand-new loan, nothing paid
+            // down yet) — same rule store() already uses when creating.
             'debt' => $isDebtType ? ($data['debt'] ?? 0) : 0,
-            // Only moves if the user explicitly edits it — never re-derived from
-            // `debt`, or a paydown Plan's progress would reset itself.
-            'initial_debt' => $isDebtType ? ($data['initial_debt'] ?? $holding->initial_debt) : null,
+            'initial_debt' => $isDebtType ? ($data['initial_debt'] ?? $data['debt'] ?? 0) : null,
             'mortgage_down_payment' => $isRealEstate ? ($data['mortgage_down_payment'] ?? null) : null,
             'ownership_pct' => $isRealEstate ? ($data['ownership_pct'] ?? 100) : 100,
             'monthly_rent' => $isRealEstate ? ($data['monthly_rent'] ?? null) : null,

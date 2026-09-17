@@ -658,8 +658,9 @@ class PortfolioTest extends TestCase
             'debt' => 100000, 'initial_debt' => 100000,
         ]);
 
-        // Manually lowering "Mortgage / debt" (as opposed to a Plan) must not
-        // touch initial_debt — the progress bar has to keep its baseline.
+        // The edit form always resends every field's current value (it's a full
+        // replacement, not a partial patch) — so lowering "Current mortgage"
+        // while resubmitting "Initial mortgage debt" unchanged must not move it.
         $this->actingAs($user)->put(route('holdings.update', $holding), [
             'account_id' => $account->id,
             'name' => 'Flat',
@@ -667,6 +668,7 @@ class PortfolioTest extends TestCase
             'average_cost' => 200000,
             'manual_value' => 200000,
             'debt' => 70000,
+            'initial_debt' => 100000,
         ])->assertRedirect();
 
         $holding->refresh();
@@ -687,6 +689,43 @@ class PortfolioTest extends TestCase
 
         $holding->refresh();
         $this->assertEqualsWithDelta(120000, $holding->initial_debt, 0.01);
+    }
+
+    public function test_blank_optional_numeric_fields_behave_the_same_way_on_edit(): void
+    {
+        $user = User::factory()->create(['base_currency' => 'EUR']);
+        $account = $user->accounts()->create(['name' => 'Main', 'currency' => 'EUR']);
+        $flat = Asset::create(['type' => 'realestate', 'symbol' => 'FLAT', 'name' => 'Flat', 'currency' => 'EUR']);
+        $holding = Holding::create([
+            'account_id' => $account->id, 'asset_id' => $flat->id,
+            'quantity' => 1, 'average_cost' => 200000, 'manual_value' => 200000,
+            'debt' => 70000, 'initial_debt' => 100000, 'mortgage_down_payment' => 50000,
+        ]);
+
+        // Clearing every optional field at once (as submitted by the edit
+        // form: present, but empty — never entirely omitted) must not fall
+        // back to whatever was there before, for any of them:
+        // - "Current mortgage" blank -> 0 (the column can't be null).
+        // - "Initial mortgage debt" blank -> matches the "Current mortgage"
+        //   just saved (0 here too), same as leaving it blank on the create
+        //   form — a fresh baseline, not the stale 100,000.
+        // - "Mortgage down payment" blank -> null (bought outright / not
+        //   tracked), unchanged from its existing behaviour.
+        $this->actingAs($user)->put(route('holdings.update', $holding), [
+            'account_id' => $account->id,
+            'name' => 'Flat',
+            'quantity' => 1,
+            'average_cost' => 200000,
+            'manual_value' => 200000,
+            'debt' => '',
+            'initial_debt' => '',
+            'mortgage_down_payment' => '',
+        ])->assertRedirect();
+
+        $holding->refresh();
+        $this->assertEqualsWithDelta(0, $holding->debt, 0.01);
+        $this->assertEqualsWithDelta(0, $holding->initial_debt, 0.01);
+        $this->assertNull($holding->mortgage_down_payment);
     }
 
     public function test_real_estate_ownership_share_scales_every_figure(): void
