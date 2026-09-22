@@ -282,6 +282,90 @@ Alpine.data('assetSearch', (config = {}) => ({
     },
 }));
 
+/* ------------------------------------------------------------------ */
+/* Browser push notifications (price alerts)                            */
+/* ------------------------------------------------------------------ */
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
+function csrfFetch(url, options = {}) {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    return fetch(url, {
+        ...options,
+        headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json', Accept: 'application/json', ...options.headers },
+        credentials: 'same-origin',
+    });
+}
+
+Alpine.data('pushSettings', (vapidPublicKey) => ({
+    status: 'checking', // checking | unsupported | unconfigured | denied | available | subscribed
+    get statusText() {
+        return {
+            checking: 'Checking…',
+            unsupported: 'Not supported by this browser.',
+            unconfigured: 'Not set up on this server.',
+            denied: 'Blocked — allow notifications for this site in your browser settings.',
+            available: 'Not enabled on this device.',
+            subscribed: 'Enabled on this device.',
+        }[this.status];
+    },
+    async init() {
+        if (!vapidPublicKey) {
+            this.status = 'unconfigured';
+            return;
+        }
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            this.status = 'unsupported';
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            this.status = 'denied';
+            return;
+        }
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            this.status = sub ? 'subscribed' : 'available';
+        } catch (e) {
+            this.status = 'available';
+        }
+    },
+    async subscribe() {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            this.status = permission === 'denied' ? 'denied' : 'available';
+            return;
+        }
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            });
+            await csrfFetch('/notifications/push/subscribe', { method: 'POST', body: JSON.stringify(sub.toJSON()) });
+            this.status = 'subscribed';
+        } catch (e) {
+            this.status = 'available';
+        }
+    },
+    async unsubscribe() {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                await csrfFetch('/notifications/push/subscribe', { method: 'DELETE', body: JSON.stringify({ endpoint: sub.endpoint }) });
+                await sub.unsubscribe();
+            }
+        } finally {
+            this.status = 'available';
+        }
+    },
+}));
+
 window.Alpine = Alpine;
 Alpine.start();
 

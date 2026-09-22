@@ -5,6 +5,7 @@
         ['route' => 'positions',  'match' => ['positions', 'holdings.*'], 'label' => 'Positions', 'icon' => 'M4 18 10 12l4 3 6-8M4 6v12'],
         ['route' => 'plans.index', 'match' => 'plans.*', 'label' => 'Plans', 'icon' => 'M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3'],
         ['route' => 'liabilities.index', 'match' => 'liabilities.*', 'label' => 'Liabilities', 'icon' => 'M4 19h16M6 15v4M10 11v8M14 7v12M18 4v15'],
+        ['route' => 'alerts.index', 'match' => 'alerts.*', 'label' => 'Alerts', 'icon' => 'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0'],
         ['route' => 'search',     'label' => 'Search',    'icon' => 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm10 17-5-5'],
     ];
 @endphp

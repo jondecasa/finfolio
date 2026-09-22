@@ -32,6 +32,9 @@
                         <a href="{{ route('search') }}" class="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-white lg:hidden">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm10 17-5-5"/></svg>
                         </a>
+                        <a href="{{ route('alerts.index') }}" class="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-white lg:hidden">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                        </a>
                     @endisset
                     <h1 class="text-2xl font-bold lg:text-3xl">{{ $heading ?? 'Home' }}</h1>
                 </div>

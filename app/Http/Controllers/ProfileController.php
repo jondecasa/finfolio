@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\Notifications\TelegramNotifier;
+use App\Services\Notifications\WebPushNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,10 +16,16 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
+    public function edit(Request $request, TelegramNotifier $telegram, WebPushNotifier $webPush): View
     {
+        $user = $request->user();
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'telegramConfigured' => $telegram->isConfigured(),
+            'telegramLinkUrl' => $user->telegram_link_token ? $telegram->linkUrl($user) : null,
+            'webPushConfigured' => $webPush->isConfigured(),
+            'vapidPublicKey' => config('finfolio.webpush.public_key'),
         ]);
     }
 

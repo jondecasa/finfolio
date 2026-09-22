@@ -52,6 +52,21 @@ class User extends Authenticatable
         return $this->hasMany(PortfolioSnapshot::class);
     }
 
+    public function priceAlerts(): HasMany
+    {
+        return $this->hasMany(PriceAlert::class);
+    }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
+    public function hasTelegramLinked(): bool
+    {
+        return filled($this->telegram_chat_id);
+    }
+
     public function currency(): string
     {
         return $this->base_currency ?: config('finfolio.base_currency');

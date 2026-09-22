@@ -10,6 +10,8 @@ use Illuminate\Support\Collection;
 
 class PriceService
 {
+    public function __construct(protected AlertService $alerts) {}
+
     /** @var array<string, PriceProvider> */
     protected array $resolved = [];
 
@@ -79,6 +81,7 @@ class PriceService
                 }
 
                 $asset->save();
+                $this->alerts->checkAsset($asset);
                 $updated++;
             }
         }

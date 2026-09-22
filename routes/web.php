@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Api\AssetSearchController;
 use App\Http\Controllers\Api\ChartController;
 use App\Http\Controllers\HoldingController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LiabilitiesController;
+use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PortfolioActionController;
 use App\Http\Controllers\PositionsController;
@@ -60,6 +62,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/accounts', [AccountController::class, 'store'])->name('accounts.store');
     Route::put('/accounts/{account}', [AccountController::class, 'update'])->name('accounts.update');
     Route::delete('/accounts/{account}', [AccountController::class, 'destroy'])->name('accounts.destroy');
+
+    // Price alerts
+    Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
+    Route::get('/alerts/create', [AlertController::class, 'create'])->name('alerts.create');
+    Route::post('/alerts', [AlertController::class, 'store'])->name('alerts.store');
+    Route::post('/alerts/{alert}/rearm', [AlertController::class, 'rearm'])->name('alerts.rearm');
+    Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])->name('alerts.destroy');
+
+    // Notification channels (Telegram bot, browser Web Push) — settings live on Profile
+    Route::post('/notifications/telegram/connect', [NotificationSettingsController::class, 'connectTelegram'])->name('notifications.telegram.connect');
+    Route::post('/notifications/telegram/check', [NotificationSettingsController::class, 'checkTelegram'])->name('notifications.telegram.check');
+    Route::delete('/notifications/telegram', [NotificationSettingsController::class, 'disconnectTelegram'])->name('notifications.telegram.disconnect');
+    Route::post('/notifications/push/subscribe', [NotificationSettingsController::class, 'subscribePush'])->name('notifications.push.subscribe');
+    Route::delete('/notifications/push/subscribe', [NotificationSettingsController::class, 'unsubscribePush'])->name('notifications.push.unsubscribe');
+    Route::post('/notifications/push/test', [NotificationSettingsController::class, 'testPush'])->name('notifications.push.test');
 
     // Quick actions
     Route::post('/portfolio/refresh', [PortfolioActionController::class, 'refresh'])->name('portfolio.refresh');

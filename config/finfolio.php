@@ -70,6 +70,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Price alert notifications
+    |--------------------------------------------------------------------------
+    |
+    | Both channels are optional and independent — an alert notifies over
+    | whichever ones the user has set up (Telegram chat linked, and/or a
+    | browser push subscription). Neither is required for the app to work.
+    |
+    */
+
+    'telegram' => [
+        // Create a bot with @BotFather on Telegram to get these.
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+    ],
+
+    'webpush' => [
+        // Generate a pair with: php artisan webpush:vapid
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:noreply@finfolio.app'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Chart ranges
     |--------------------------------------------------------------------------
     |

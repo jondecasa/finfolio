@@ -12,6 +12,18 @@
             <span class="text-muted">&rsaquo;</span>
         </a>
 
+        <a href="{{ route('alerts.index') }}" class="card flex items-center justify-between transition hover:bg-ink-700">
+            <div>
+                <div class="font-semibold">Price alerts</div>
+                <div class="text-sm text-muted">Get notified when a price crosses a level you set</div>
+            </div>
+            <span class="text-muted">&rsaquo;</span>
+        </a>
+
+        <section class="card">
+            @include('profile.partials.notification-settings-form')
+        </section>
+
         <section class="card">
             @include('profile.partials.update-password-form')
         </section>
