@@ -98,7 +98,7 @@ php artisan prices:refresh        # refresh every tracked asset (--type=crypto t
 php artisan portfolio:snapshot    # write a net-worth snapshot per user (--refresh to price first)
 ```
 
-Both are scheduled in `routes/console.php` (`prices:refresh` every 15 min,
+Both are scheduled in `routes/console.php` (`prices:refresh` hourly,
 `portfolio:snapshot` hourly). Run the scheduler in production with:
 
 ```bash
