@@ -131,7 +131,7 @@ class AlertTest extends TestCase
         $this->assertTrue($firstTrigger->equalTo($alert->fresh()->triggered_at));
     }
 
-    public function test_user_cannot_rearm_or_delete_another_users_alert(): void
+    public function test_user_cannot_view_edit_rearm_or_delete_another_users_alert(): void
     {
         $owner = User::factory()->create();
         $stranger = User::factory()->create();
@@ -143,6 +143,46 @@ class AlertTest extends TestCase
 
         $this->actingAs($stranger)->post(route('alerts.rearm', $alert))->assertForbidden();
         $this->actingAs($stranger)->delete(route('alerts.destroy', $alert))->assertForbidden();
+        $this->actingAs($stranger)->get(route('alerts.edit', $alert))->assertForbidden();
+        $this->actingAs($stranger)->put(route('alerts.update', $alert), [
+            'condition' => 'below', 'target_price' => 100,
+        ])->assertForbidden();
+    }
+
+    public function test_user_can_update_an_alerts_condition_and_target_price(): void
+    {
+        $user = User::factory()->create();
+        $asset = Asset::create(['type' => 'stock', 'symbol' => 'NVDA', 'name' => 'NVIDIA', 'currency' => 'USD']);
+        $alert = PriceAlert::create([
+            'user_id' => $user->id, 'asset_id' => $asset->id,
+            'condition' => 'above', 'target_price' => 150,
+        ]);
+
+        $this->actingAs($user)->put(route('alerts.update', $alert), [
+            'condition' => 'below', 'target_price' => 90,
+        ])->assertRedirect(route('alerts.index'));
+
+        $alert->refresh();
+        $this->assertSame('below', $alert->condition);
+        $this->assertEqualsWithDelta(90, $alert->target_price, 0.01);
+    }
+
+    public function test_updating_a_triggered_alert_re_arms_it(): void
+    {
+        $user = User::factory()->create();
+        $asset = Asset::create(['type' => 'stock', 'symbol' => 'NVDA', 'name' => 'NVIDIA', 'currency' => 'USD']);
+        $alert = PriceAlert::create([
+            'user_id' => $user->id, 'asset_id' => $asset->id,
+            'condition' => 'above', 'target_price' => 150, 'active' => false, 'triggered_at' => now(),
+        ]);
+
+        $this->actingAs($user)->put(route('alerts.update', $alert), [
+            'condition' => 'above', 'target_price' => 200,
+        ])->assertRedirect();
+
+        $alert->refresh();
+        $this->assertTrue($alert->active);
+        $this->assertNull($alert->triggered_at);
     }
 
     public function test_rearming_reactivates_a_triggered_alert(): void

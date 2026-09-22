@@ -22,25 +22,27 @@
             @forelse ($alerts as $alert)
                 @php $asset = $alert->asset; @endphp
                 <div class="card flex items-center gap-3">
-                    <span class="logo-bubble">
-                        @if ($asset->logo_url)
-                            <img src="{{ $asset->logo_url }}" alt="" class="h-full w-full object-cover">
-                        @else
-                            {{ \Illuminate\Support\Str::substr($asset->symbol, 0, 3) }}
-                        @endif
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <div class="truncate font-semibold">{{ $asset->name }}</div>
-                        <div class="text-xs text-muted">
-                            {{ $alert->condition === 'above' ? 'Above' : 'Below' }} {{ $num($alert->target_price, $asset->currency) }}
-                            @if ($asset->current_price !== null)
-                                · now {{ $num($asset->current_price, $asset->currency) }}
+                    <a href="{{ route('alerts.edit', $alert) }}" class="flex min-w-0 flex-1 items-center gap-3">
+                        <span class="logo-bubble">
+                            @if ($asset->logo_url)
+                                <img src="{{ $asset->logo_url }}" alt="" class="h-full w-full object-cover">
+                            @else
+                                {{ \Illuminate\Support\Str::substr($asset->symbol, 0, 3) }}
+                            @endif
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <div class="truncate font-semibold">{{ $asset->name }}</div>
+                            <div class="text-xs text-muted">
+                                {{ $alert->condition === 'above' ? 'Above' : 'Below' }} {{ $num($alert->target_price, $asset->currency) }}
+                                @if ($asset->current_price !== null)
+                                    · now {{ $num($asset->current_price, $asset->currency) }}
+                                @endif
+                            </div>
+                            @if ($alert->triggered_at)
+                                <div class="mt-0.5 text-xs text-muted">Triggered {{ $alert->triggered_at->diffForHumans() }}</div>
                             @endif
                         </div>
-                        @if ($alert->triggered_at)
-                            <div class="mt-0.5 text-xs text-muted">Triggered {{ $alert->triggered_at->diffForHumans() }}</div>
-                        @endif
-                    </div>
+                    </a>
                     <div class="flex shrink-0 flex-col items-end gap-1.5">
                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $alert->active ? 'bg-gain/15 text-gain' : 'bg-ink-600 text-muted' }}">
                             {{ $alert->active ? 'Active' : 'Triggered' }}

@@ -62,6 +62,36 @@ class AlertController extends Controller
         return redirect()->route('alerts.index')->with('status', "Alert set for {$asset->symbol}.");
     }
 
+    public function edit(Request $request, PriceAlert $alert)
+    {
+        $this->authorizeAlert($request, $alert);
+        $alert->load('asset');
+
+        return view('alerts.edit', ['alert' => $alert]);
+    }
+
+    public function update(Request $request, PriceAlert $alert)
+    {
+        $this->authorizeAlert($request, $alert);
+
+        $data = $request->validate([
+            'condition' => ['required', Rule::in(PriceAlert::CONDITIONS)],
+            'target_price' => ['required', 'numeric', 'gt:0'],
+        ]);
+
+        // Editing a threshold means "watch for this instead" — reactivate it,
+        // same as re-arming, so a change to a triggered alert doesn't sit
+        // dead until the user notices and re-arms it separately.
+        $alert->update([
+            'condition' => $data['condition'],
+            'target_price' => $data['target_price'],
+            'active' => true,
+            'triggered_at' => null,
+        ]);
+
+        return redirect()->route('alerts.index')->with('status', 'Alert updated.');
+    }
+
     public function rearm(Request $request, PriceAlert $alert)
     {
         $this->authorizeAlert($request, $alert);
