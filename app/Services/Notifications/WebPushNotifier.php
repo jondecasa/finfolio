@@ -32,39 +32,46 @@ class WebPushNotifier
             return;
         }
 
-        $webPush = new WebPush([
-            'VAPID' => [
-                'subject' => $this->subject ?: 'mailto:noreply@finfolio.app',
-                'publicKey' => $this->publicKey,
-                'privateKey' => $this->privateKey,
-            ],
-        ]);
+        // Never let a Web Push failure (a bad VAPID key, an OpenSSL hiccup, a
+        // network error to the push service…) bubble up — the caller (e.g.
+        // AlertService, mid price-refresh loop) must keep going regardless.
+        try {
+            $webPush = new WebPush([
+                'VAPID' => [
+                    'subject' => $this->subject ?: 'mailto:noreply@finfolio.app',
+                    'publicKey' => $this->publicKey,
+                    'privateKey' => $this->privateKey,
+                ],
+            ]);
 
-        $payload = json_encode(['title' => $title, 'body' => $body, 'url' => $url ?: '/']);
+            $payload = json_encode(['title' => $title, 'body' => $body, 'url' => $url ?: '/']);
 
-        foreach ($subscriptions as $subscription) {
-            $webPush->queueNotification(
-                Subscription::create([
-                    'endpoint' => $subscription->endpoint,
-                    'publicKey' => $subscription->p256dh,
-                    'authToken' => $subscription->auth,
-                    // Modern browsers negotiate rfc8291 (aes128gcm); the
-                    // library's own default is the outdated pre-standard
-                    // "aesgcm" encoding, which real subscriptions no longer
-                    // understand.
-                    'contentEncoding' => 'aes128gcm',
-                ]),
-                $payload,
-            );
-        }
-
-        foreach ($webPush->flush() as $report) {
-            if ($report->isSubscriptionExpired()) {
-                // Browser data was cleared or the user unsubscribed elsewhere.
-                $subscriptions->firstWhere('endpoint', $report->getEndpoint())?->delete();
-            } elseif (! $report->isSuccess()) {
-                Log::warning('Web push failed: '.$report->getReason());
+            foreach ($subscriptions as $subscription) {
+                $webPush->queueNotification(
+                    Subscription::create([
+                        'endpoint' => $subscription->endpoint,
+                        'publicKey' => $subscription->p256dh,
+                        'authToken' => $subscription->auth,
+                        // Modern browsers negotiate rfc8291 (aes128gcm); the
+                        // library's own default is the outdated pre-standard
+                        // "aesgcm" encoding, which real subscriptions no longer
+                        // understand.
+                        'contentEncoding' => 'aes128gcm',
+                    ]),
+                    $payload,
+                );
             }
+
+            foreach ($webPush->flush() as $report) {
+                if ($report->isSubscriptionExpired()) {
+                    // Browser data was cleared or the user unsubscribed elsewhere.
+                    $subscriptions->firstWhere('endpoint', $report->getEndpoint())?->delete();
+                } elseif (! $report->isSuccess()) {
+                    Log::warning('Web push failed for subscription '.$report->getEndpoint().': '.$report->getReason());
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Web push send threw: '.$e->getMessage());
         }
     }
 }

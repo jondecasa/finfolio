@@ -7,6 +7,7 @@ use App\Models\PriceAlert;
 use App\Services\Notifications\TelegramNotifier;
 use App\Services\Notifications\WebPushNotifier;
 use App\Support\Money;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Checks an asset's just-refreshed live price against every active price
@@ -50,7 +51,15 @@ class AlertService
             .Money::format($alert->target_price, $currency)
             .'. Current price: '.Money::format($price, $currency);
 
-        $this->telegram->send($alert->user, $text);
+        $telegramSent = $this->telegram->send($alert->user, $text);
         $this->webPush->send($alert->user, 'Price alert', $text, url('/alerts'));
+
+        Log::info("Alert #{$alert->id} on {$asset->symbol} triggered for user #{$alert->user_id}.", [
+            'telegram_configured' => $this->telegram->isConfigured(),
+            'telegram_linked' => $alert->user->hasTelegramLinked(),
+            'telegram_sent' => $telegramSent,
+            'webpush_configured' => $this->webPush->isConfigured(),
+            'webpush_subscriptions' => $alert->user->pushSubscriptions()->count(),
+        ]);
     }
 }
