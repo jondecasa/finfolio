@@ -16,7 +16,26 @@
                 No Telegram bot is set up on this server yet, but you can still enable
                 <a href="{{ route('profile.edit') }}" class="underline">browser push notifications</a> from your profile.
             </p>
-        @endunless
+        @else
+            @unless ($telegramLinked)
+                <div class="card mb-4">
+                    <p class="font-semibold">Connect Telegram to get notified</p>
+                    <p class="mt-1 text-sm text-muted">
+                        Open this link and press <strong class="text-white">Start</strong> in Telegram, then come back and check —
+                        otherwise a triggered alert has nowhere to notify you.
+                    </p>
+                    <a href="{{ $telegramLinkUrl }}" target="_blank" rel="noopener noreferrer"
+                       class="btn-primary mt-3 flex items-center justify-center gap-1.5">
+                        Open Telegram
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+                    </a>
+                    <form method="POST" action="{{ route('notifications.telegram.check') }}" class="mt-2">
+                        @csrf
+                        <button class="btn-ghost w-full !py-2">I've pressed Start — check now</button>
+                    </form>
+                </div>
+            @endunless
+        @endif
 
         <div class="space-y-3">
             @forelse ($alerts as $alert)

@@ -31,6 +31,27 @@ class AlertTest extends TestCase
         $this->get('/alerts')->assertRedirect('/login');
     }
 
+    public function test_alerts_page_prompts_to_connect_telegram_when_configured_but_not_linked(): void
+    {
+        config(['finfolio.telegram.bot_token' => 'test-token', 'finfolio.telegram.bot_username' => 'FinfolioTestBot']);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/alerts')
+            ->assertOk()
+            ->assertSee('Connect Telegram to get notified')
+            ->assertSee('Open Telegram');
+    }
+
+    public function test_alerts_page_has_no_telegram_prompt_once_linked(): void
+    {
+        config(['finfolio.telegram.bot_token' => 'test-token', 'finfolio.telegram.bot_username' => 'FinfolioTestBot']);
+        $user = User::factory()->create(['telegram_chat_id' => '12345']);
+
+        $this->actingAs($user)->get('/alerts')
+            ->assertOk()
+            ->assertDontSee('Connect Telegram to get notified');
+    }
+
     public function test_user_can_create_a_price_alert_for_an_asset_they_dont_hold(): void
     {
         $user = User::factory()->create(['base_currency' => 'EUR']);

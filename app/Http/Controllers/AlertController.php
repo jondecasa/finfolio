@@ -14,15 +14,26 @@ class AlertController extends Controller
 
     public function index(Request $request, TelegramNotifier $telegram)
     {
-        $alerts = $request->user()->priceAlerts()
+        $user = $request->user();
+
+        $alerts = $user->priceAlerts()
             ->with('asset')
             ->orderByDesc('active')
             ->orderByDesc('created_at')
             ->get();
 
+        $telegramConfigured = $telegram->isConfigured();
+
         return view('alerts.index', [
             'alerts' => $alerts,
-            'telegramConfigured' => $telegram->isConfigured(),
+            'telegramConfigured' => $telegramConfigured,
+            'telegramLinked' => $user->hasTelegramLinked(),
+            // Only generate/expose the link when it's actually needed, so
+            // visiting this page doesn't mint a token for someone who never
+            // intends to use Telegram.
+            'telegramLinkUrl' => ($telegramConfigured && ! $user->hasTelegramLinked())
+                ? $telegram->linkUrl($user)
+                : null,
         ]);
     }
 
