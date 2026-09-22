@@ -3,6 +3,10 @@
     $currency = $asset->currency ?? 'USD';
     $source = $asset->priceSource();
     $num = fn ($v) => $v === null ? '' : rtrim(rtrim(number_format((float) $v, 8, '.', ''), '0'), '.');
+    // Same as $num, but shows 0 instead of blank for fields where null and 0
+    // are treated identically everywhere they're used (unlike mortgage down
+    // payment, where null vs 0 changes the invested-equity calculation).
+    $num0 = fn ($v) => $num($v ?? 0);
     $categories = config('finfolio.categories', []);
     $costCcy = strtoupper($holding->costCurrency());
     $costCcys = collect([auth()->user()->currency(), $currency, 'EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'SEK', 'NOK', 'DKK', 'PLN'])
@@ -96,7 +100,7 @@
                 <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Purchase price</label>
                     <input type="number" step="any" min="0" name="average_cost" class="field"
-                           value="{{ old('average_cost', $num($holding->average_cost)) }}" inputmode="decimal">
+                           value="{{ old('average_cost', $num0($holding->average_cost)) }}" inputmode="decimal">
                 </div>
                 <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Current value</label>
@@ -147,13 +151,13 @@
                 <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Monthly rent <span class="text-muted/60">(if rented out)</span></label>
                     <input type="number" step="any" min="0" name="monthly_rent" class="field"
-                           value="{{ old('monthly_rent', $num($holding->monthly_rent)) }}" inputmode="decimal" placeholder="0.00">
+                           value="{{ old('monthly_rent', $num0($holding->monthly_rent)) }}" inputmode="decimal" placeholder="0.00">
                 </div>
             </div>
             <div>
                 <label class="mb-1.5 block text-sm font-semibold text-muted">Accumulated net rent <span class="text-muted/60">(collected so far)</span></label>
                 <input type="number" step="any" min="0" name="accumulated_rent" class="field"
-                       value="{{ old('accumulated_rent', $num($holding->accumulated_rent)) }}" inputmode="decimal" placeholder="0.00">
+                       value="{{ old('accumulated_rent', $num0($holding->accumulated_rent)) }}" inputmode="decimal" placeholder="0.00">
                 <p class="mt-1 text-xs text-muted">
                     Total net rent (after costs) actually received to date. Counts as profit in ROE. A recurring
                     <a href="{{ route('plans.create') }}" class="underline">Plan</a> ("Add net rent") can top this up automatically.
@@ -230,7 +234,7 @@
                 <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Avg. buy price</label>
                     <input type="number" step="any" min="0" name="average_cost" class="field"
-                           value="{{ old('average_cost', $num($holding->average_cost)) }}" inputmode="decimal">
+                           value="{{ old('average_cost', $num0($holding->average_cost)) }}" inputmode="decimal">
                 </div>
                 <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Cost currency</label>
@@ -253,7 +257,7 @@
                 <div>
                     <label class="mb-1.5 block text-sm font-semibold text-muted">Avg. buy price</label>
                     <input type="number" step="any" min="0" name="average_cost" class="field"
-                           value="{{ old('average_cost', $num($holding->average_cost)) }}" inputmode="decimal">
+                           value="{{ old('average_cost', $num0($holding->average_cost)) }}" inputmode="decimal">
                 </div>
             </div>
             <div>
