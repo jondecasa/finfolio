@@ -85,6 +85,23 @@ return [
         'bot_username' => env('TELEGRAM_BOT_USERNAME'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin notifications
+    |--------------------------------------------------------------------------
+    |
+    | A Telegram message to the app owner when something worth knowing happens
+    | (currently: a new user registers). Independent of the per-user alerts bot
+    | above — it can be the same bot or a different one. Optional: does nothing
+    | unless both values are set.
+    |
+    */
+
+    'admin_notify' => [
+        'telegram_bot_token' => env('ADMIN_TELEGRAM_BOT_TOKEN'),
+        'telegram_chat_id' => env('ADMIN_TELEGRAM_CHAT_ID'),
+    ],
+
     'webpush' => [
         // Generate a pair with: php artisan webpush:vapid
         'public_key' => env('VAPID_PUBLIC_KEY'),
